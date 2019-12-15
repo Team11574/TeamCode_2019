@@ -10,7 +10,3 @@
 // Custom definitions may go here
 // Include common definitions from above.
 apply from: '../build.common.gradle'
-dependencies {
-    implementation project(':endercv:openCVLibrary3')
-    implementation project(':endercv:endercv')
-}
