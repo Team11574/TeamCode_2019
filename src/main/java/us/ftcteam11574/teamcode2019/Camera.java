@@ -1,7 +1,9 @@
 package us.ftcteam11574.teamcode2019;
 
+import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.vuforia.CameraCalibration;
 import com.vuforia.Image;
 import com.vuforia.PIXEL_FORMAT;
 import com.vuforia.Vuforia;
@@ -11,12 +13,22 @@ import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer;
 
 @TeleOp(name="Camera", group="Iterative Opmode")
-public class Camera extends OpMode {
+public class Camera extends LinearOpMode {
     public static WebcamName webCam;
     public static VuforiaLocalizer vuforia;
+    boolean rgb_format_worked;
 
     @Override
-    public void init() {
+    public void runOpMode() throws InterruptedException {
+
+
+
+
+        Vuforia.setFrameFormat(PIXEL_FORMAT.RGB888, true);
+
+
+
+
         webCam = hardwareMap.get(WebcamName.class, "Webcam 1");
         int cameraMonitorViewId = hardwareMap.appContext.getResources().getIdentifier("cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
         VuforiaLocalizer.Parameters vu_parameters = new VuforiaLocalizer.Parameters(cameraMonitorViewId);
@@ -27,25 +39,102 @@ public class Camera extends OpMode {
 
         vu_parameters.cameraName = webCam;
 
-
         vuforia = ClassFactory.getInstance().createVuforia(vu_parameters);
-        //
+        vuforia.enableConvertFrameToBitmap();
+
+       // vuforia.getCameraCalibration();
+
+
+        rgb_format_worked = vuforia.enableConvertFrameToFormat(PIXEL_FORMAT.RGB888)[0];
+
+        telemetry.addData("test","test");
         vuforia.setFrameQueueCapacity(3);
-        Vuforia.setFrameFormat(PIXEL_FORMAT.RGB888, true);
+
         //GGGRRRRR BBBBBGGG
         //
 
+
+
+        for (int time = 0; 10 > time; time++) {
+
+            Image img = readCamera();
+
+            Object[] res = readImageRGB565(img);
+            //gets to here succesfully
+            //telemetry.addData("Size width", (int) res[1]);
+            //telemetry.addData("Size height", (int) res[2]);
+            //telemetry.update();
+            long time_start = System.currentTimeMillis();
+            Skyblock.readImage(((int[][]) (res[0])), (int) res[1], (int) res[2]);
+            //Skyblock.score(Skyblock.pixels); //might just be running too slow, so it crashes
+
+            double[][] regions = Skyblock.bestRegion(Skyblock.score(Skyblock.pixels));
+
+            double max = 0;
+            int max_id = 0;
+
+            for (int i = 0; regions.length > i; i++) {
+                if (regions[i][0] > max) {
+                    max_id = i;
+                    max = regions[i][0];
+
+                }
+            }
+
+            double[] center = new double[]{regions[max_id][2], regions[max_id][1]};
+            telemetry.addData("Position", "x" + center[0] + "y" + center[1]);
+            telemetry.addData("Time",System.currentTimeMillis()-time_start);
+            //how long it took to recognize the image
+
+
+            telemetry.update();
+        }
+
+
+
+
+
+
+    }
+    public Object[] readImageRGB565(Image image) {
+        int width = image.getWidth();
+        int height = image.getHeight();
+
+        java.nio.ByteBuffer pixels = image.getPixels();
+
+        //System.out.println("the byte order is" + pixels.order());
+        int[][] rgb = new int[width*height][3];
+        //telemetry.addData("type",pixels.order());
+        //ByteOrder.
+        //ASSUMING THAT BYTEORDER IS BIG ENDIAN
+        int i = 0;
+        while(pixels.hasRemaining()) {
+
+            int read1 = (((Byte)pixels.get()).intValue() << 8) | ((Byte)pixels.get()).intValue();
+            //int read2 = ((Byte)pixels.get()).intValue();
+
+
+
+            int red_read = ( (read1 & 0b11111000_00000000) >> 11) << 3 ; //read the first 5 bits
+            int green_read = ( (read1 & 0b00000111_11100000) >> 5) << 2;
+            int blue_read = ( (read1 & 0b00000000_00011111) >> 0 ) << 3;
+
+
+
+
+            rgb[i][0] =   red_read;
+            rgb[i][1] =   green_read;
+            rgb[i++][2] =   blue_read;
+
+
+
+        }
+        return new Object[]{rgb,width,height};
+
+
     }
 
-    @Override
-    public void loop() {
-    int[][] rgb = (int[][]) (readImage(readCamera())[0]);
-
-    //maybe save this to a file somehwere
-
-    }
-
-    public static Object[] readImage(Image image) {
+    public static Object[] readImageRGB888(Image image) {
         int width = image.getWidth();
         int height = image.getHeight();
         java.nio.ByteBuffer pixels = image.getPixels();
@@ -74,16 +163,25 @@ public class Camera extends OpMode {
         //pixels are in the form:
         //RRRRRRRR GGGGGGGG BBBBBBB
     }
-    public static Image readCamera() {
+    public Image readCamera() {
         VuforiaLocalizer.CloseableFrame frame = null;
         Image rgb = null;
         try {
             frame = vuforia.getFrameQueue().take();
+            telemetry.addData("images",frame.getNumImages());
             long numImages = frame.getNumImages();
             for (int i = 0; numImages > i; i++) {
+                telemetry.addData("rgb format",frame.getImage(i).getFormat());
+
+                //right now only reading the color greyscale
+
                 if(frame.getImage(i).getFormat()==PIXEL_FORMAT.RGB888) {
+
                     rgb = frame.getImage(i);
                     //should break after this?
+               }
+                if(frame.getImage(i).getFormat() == PIXEL_FORMAT.RGB565) {
+                    rgb = frame.getImage(i);
                 }
             }
         } catch (InterruptedException e) {

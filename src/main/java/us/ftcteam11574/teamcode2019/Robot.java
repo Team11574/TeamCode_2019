@@ -11,8 +11,11 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.vuforia.Image;
 import com.vuforia.PIXEL_FORMAT;
+import com.vuforia.Vuforia;
 
+import org.firstinspires.ftc.robotcore.external.ClassFactory;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer;
 
@@ -39,10 +42,10 @@ public class Robot {
     public static HardwareMap hardwareMap;
     public static Gamepad gamepad1;
     public static Gamepad gamepad2;
-    /* ***CAMERA***
+    /* CAMERA
     public static WebcamName webCam;
+    */
 
-     */
     public static VuforiaLocalizer vuforia;
 
 
@@ -92,7 +95,7 @@ public class Robot {
         intakeR  = hardwareMap.get(DcMotor.class, "intakeR");  //225 degrees //v2
         intakeL  = hardwareMap.get(DcMotor.class, "intakeL");  //315 degrees //v3
         pantagraph  = hardwareMap.get(DcMotor.class, "pant");  //315 degrees //v3
-        //webCam = hardwareMap.get(WebcamName.class, "Webcam 1");
+
             //Don't initilaize,since its not working right now
         imu = hardwareMap.get(BNO055IMU.class, "imu");
         BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
@@ -112,6 +115,35 @@ public class Robot {
         br.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         motors = new DcMotor[]{br,tr,tl,bl}; //
         mDistanceSensor = hardwareMap.get(Rev2mDistanceSensor.class, "distance");
+
+        /*
+
+        Vuforia.setFrameFormat(PIXEL_FORMAT.RGB565, true);
+
+
+
+
+        webCam = hardwareMap.get(WebcamName.class, "Webcam 1");
+        int cameraMonitorViewId = hardwareMap.appContext.getResources().getIdentifier("cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
+        VuforiaLocalizer.Parameters vu_parameters = new VuforiaLocalizer.Parameters(cameraMonitorViewId);
+
+
+        vu_parameters.vuforiaLicenseKey = "AV29AFb/////AAABma3tuKm8DE2/tKJA0LIvwcIWOzMsiVbx8yLAiSRl1l98p84lwbzzJMkqsJw7ySFusaR6sYtQoSN9rzPIjUVqJ/uLkqv/V0rllY9LtZS0bnUfiyYarG+ZIDk587QhB/+BdT2EMo7w7+dHPO3Y9YOoFMZom016W6kYU+Tc7/OaN0AMXb6zGal02KRH3h913F+84o7J48sKXz0whgL1TSbfFQvYYyzijQlqzsmcvee4e3AI3L30L9AM1+COMhKcsIuYjpuUl1/oELl6XSCC7Q3UVnrKnah1WQb2C8m1KdsGgPbPp42rFC4ArXydJI193CEEENY/fyHvxxh8/aEb4fxxmybXkPk93BVpPZL6co8hFpSF";
+
+
+        vu_parameters.cameraName = webCam;
+
+        vuforia = ClassFactory.getInstance().createVuforia(vu_parameters);
+        vuforia.enableConvertFrameToBitmap();
+
+        // vuforia.getCameraCalibration();
+
+
+        //rgb_format_worked = vuforia.enableConvertFrameToFormat(PIXEL_FORMAT.RGB888)[0];
+
+        telemetry.addData("test","test");
+        vuforia.setFrameQueueCapacity(3);
+        */
         //mColorSensor = hardwareMap.colorSensor.get("color"); //I think its causing too much lag
 
         /*  ***CAMERA***
@@ -181,6 +213,8 @@ public class Robot {
         return ang;
     }
     public static double[] orientMode(double vx ,double vy ,double rot,double rot2) {
+
+
         rot2 = -rot2;
         //maybe need to swap rot2 and rot1
         //somethign else is a problem though,s
@@ -261,14 +295,14 @@ public class Robot {
         Robot.intakeR.setPower(0);
         Robot.intakeL.setPower(0);
     }
-
+    /*
     public static int blockPosition(int[] center, int wide,int high) {
         final int low_hi = high + high/10;
         final int hi_hi = (int) (high/1.3);
-        /*
-        final int low_right = 0;
-        final int hi_right = wide/3 - wide/10; //all of these values shoudl be experimentally found
-        */
+
+        //final int low_right = 0;
+        //final int hi_right = wide/3 - wide/10; //all of these values shoudl be experimentally found
+
 
 
         if(! (center[1] > low_hi && center[1] < hi_hi) ) {
@@ -283,14 +317,53 @@ public class Robot {
 
 
     }
+    */
     //returns where the cetner is
-    public static int center() {
-        Object[] res = (readImage(readCamera())); //in the form {rgb,width,height}
+    public static int[] center() {
+        Object[] res = (readImageRGB565(readCamera())); //in the form {rgb,width,height}
         int[] center = Skyblock.returnCenter( ((int[][]) (res[0])),(int)res[1],(int)res[2]);
-        return blockPosition(center,(int)res[1],(int)res[2]);
+        return center;
+        //return blockPosition(center,(int)res[1],(int)res[2]);
     }
 
-    public static Object[] readImage(Image image) {
+    public static Object[] readImageRGB565(Image image) {
+        int width = image.getWidth();
+        int height = image.getHeight();
+        java.nio.ByteBuffer pixels = image.getPixels();
+
+        //System.out.println("the byte order is" + pixels.order());
+        int[][] rgb = new int[width*height][3];
+        //telemetry.addData("type",pixels.order());
+        //ByteOrder.
+        //ASSUMING THAT BYTEORDER IS BIG ENDIAN
+
+        for(int i=0; pixels.hasRemaining(); i++) {
+
+            int read1 = ((Byte)pixels.get()).intValue() << 8 | ((Byte)pixels.get()).intValue();
+            //int read2 = ((Byte)pixels.get()).intValue();
+
+
+
+            int red_read = ( (read1 & 0b11111000_00000000) >> 11) << 3 ; //read the first 5 bits
+            int green_read = ( (read1 & 0b00000111_11100000) >> 5) << 2;
+            int blue_read = ( (read1 & 0b00000000_00011111) >> 0 ) << 3;
+
+
+
+
+            rgb[i][0] =   red_read;
+            rgb[i][1] =   green_read;
+            rgb[i][2] =   blue_read;
+
+
+
+        }
+        return new Object[]{rgb,width,height};
+
+
+    }
+
+    public static Object[] readImageRGB888(Image image) {
         int width = image.getWidth();
         int height = image.getHeight();
         java.nio.ByteBuffer pixels = image.getPixels();
@@ -317,38 +390,26 @@ public class Robot {
         return new Object[]{rgb,width,height};
 
         //pixels are in the form:
-            //RRRRRRRR GGGGGGGG BBBBBBB
+        //RRRRRRRR GGGGGGGG BBBBBBB
     }
-
-
-    /*
-        public static int convertByte(Byte val, ByteOrder order) {
-            //TODO
-            if(order==ByteOrder.BIG_ENDIAN) {
-                //this means the large value is at the start
-
-            }
-            else if(order==ByteOrder.LITTLE_ENDIAN) {
-                //this meanst hte little value is at the start
-
-            }
-            else {
-                System.out.println("WRONG TYPE OF BYTE ORDER, RETURNING 0!!");
-                System.out.println(order);
-
-            }
-            return 0;
-        }
-    */
-
     public static Image readCamera() {
         VuforiaLocalizer.CloseableFrame frame = null;
         Image rgb = null;
         try {
             frame = vuforia.getFrameQueue().take();
+            telemetry.addData("images",frame.getNumImages());
             long numImages = frame.getNumImages();
             for (int i = 0; numImages > i; i++) {
+                telemetry.addData("rgb format",frame.getImage(i).getFormat());
+
+                //right now only reading the color greyscale
+
                 if(frame.getImage(i).getFormat()==PIXEL_FORMAT.RGB888) {
+
+                    //rgb = frame.getImage(i);
+                    //skip this for now
+                }
+                if(frame.getImage(i).getFormat() == PIXEL_FORMAT.RGB565) {
                     rgb = frame.getImage(i);
                 }
             }

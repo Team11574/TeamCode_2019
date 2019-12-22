@@ -12,7 +12,7 @@ import java.util.Arrays;
 
 
 class Skyblock {
-    static final int dwn_sample = 2;
+    static final int dwn_sample = 1;
     static final int a = 30/dwn_sample; //size of read of pixels
     static final int b = 30/dwn_sample; //size of read of pixels
     static final int acc = 4/dwn_sample; //accuracy of read //make acc and acc1/ acc2 go down, //works up to 8 or 9
@@ -24,10 +24,17 @@ class Skyblock {
     static final int x_size = 200/dwn_sample; //test different sizes etc
     static final int y_size = 120/dwn_sample;
 
-    //VALUES THAT WE TRUNACATE
-    static final int y_min = 0; //this works better when its pretty low on the examples I have
-    static final int y_max = 1080/2 - 30; //
+    //VALUES THAT WE TRUNCATE
+    static final int y_min = (int) (480 * .30); //this works better when its pretty low on the examples I have
+    static final int y_max = (int) (480*.85); //
+    //will need to truncate on the x side to, since we cna see too many blocks right now
 
+
+    //NOTE:
+        //WIDTH =  640
+        //HEIGHT = 480
+
+    //540 by 360
     //Note:
         //Could also add a trunacate for the x part
 
