@@ -47,7 +47,7 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
  */
 
 @TeleOp(name="opNoDist (USE THIS)", group="Iterative Opmode")
-//@Disabled
+
 public class opNoDist extends OpMode
 {
     // Declare OpMode members.
@@ -89,6 +89,8 @@ public class opNoDist extends OpMode
     private boolean x_cur = false;
     private boolean slow_intake = false;
     private boolean previous_block_state = false;
+    boolean dpad_right = false;
+    boolean dpad_left = false;
     @Override
     public void loop() {
         frame++;
@@ -98,7 +100,43 @@ public class opNoDist extends OpMode
         double vy = Robot.gamepad1.left_stick_y;
         double rot = -Robot.gamepad1.right_stick_y;
         double rot2 = Robot.gamepad1.right_stick_x;
+telemetry.addData("power",Robot.power_foundation);
+        if(Robot.gamepad1.dpad_down) {
+            Robot.runServoDown();
+        }
+        else if (Robot.gamepad1.dpad_up) {
+            Robot.runServoUp();
+        }
+        else {
 
+            Robot.stopServo();
+        }
+        if (Robot.gamepad1.dpad_left){
+            if ( !dpad_left ) {
+                dpad_left = true;
+                if (Robot.power_foundation <= .9) {
+                    Robot.power_foundation += .1;
+                }
+            }
+        }
+        else {
+            if (dpad_left) {
+                dpad_left = false;
+            }
+        }
+        if (Robot.gamepad1.dpad_right){
+            if ( !dpad_right ) {
+                dpad_right = true;
+                if (Robot.power_foundation >= .2) {
+                    Robot.power_foundation -= .1; //dont go all the way to zero
+                }
+            }
+        }
+        else {
+            if (dpad_right) {
+                dpad_right = false;
+            }
+        }
 
         if (Robot.gamepad1.a){
             if ( !a_cur ) {

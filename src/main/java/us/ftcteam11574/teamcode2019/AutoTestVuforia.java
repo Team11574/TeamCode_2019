@@ -6,7 +6,7 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-@Autonomous(name="AutoModeTESTVU (DONT USE)", group="Autonomous")
+@Autonomous(name="AutoModeTESTVU2 (DONT USE)", group="Autonomous")
 public class AutoTestVuforia extends LinearOpMode {
 
 
@@ -17,11 +17,25 @@ public class AutoTestVuforia extends LinearOpMode {
         //call center() to get the center from the camera
         //will want to create a trunacate mode, since we probably won't want to look along the entire y range
     final int line_buffer = 1000;
-    final int line_dist_from_start = 3500; //distance from start to the line under the skybridge
-    final int block_distance = 1500; //Distance from the middle block to either the rigth or left block
+
+    final int wall_buffer = 500;//distance from wall after you back up, applies to all times after
+    //you have grabbed the black, hopefully will allow the robot to avoid the other robot
+    final int line_dist_from_start = 1000; //distance from start to the line under the skybridge
+    final int block_distance = 1700; //Distance from the middle block to either the rigth or left block
+    final int block_distance_x = 780;
     final int move_from_wall = 100; //Distance to move foward orm the wall to not be at risk to get caught on the wall
-    final int block_forward_dist = 2000; //Distance to move foward while grabbing the block
-    final int[][] ranges = { {0,640/3}, {640/3,640/2}, {640/2,640}}; //just some test values, will need to see what it looks like to determine these values
+    final int block_forward_dist = 1600; //Distance to move foward while grabbing the block
+    final int foundation_dist = 5350;
+    final int foundation_forward =2150-wall_buffer;
+    final int foundation_side = 200;
+    final int foundation_buff = 550; //buffer for moving it outwards
+    final int foundation_back = 450;
+    final int foundation_pull = 1000;
+
+
+
+
+    final int[][] ranges = { {0,640/3}, {640/3,(2*640)/3}, {(2*640)/3,640}}; //just some test values, will need to see what it looks like to determine these values
 
     int[] confidences = new int[3]; //times we have foudn each one to be true
     int most_recent_position = 0; //default is zero
@@ -30,56 +44,174 @@ public class AutoTestVuforia extends LinearOpMode {
         //Intended start: TBD
         Robot.init_autoOp(telemetry, hardwareMap,gamepad1,gamepad2);
 
-        while(!isStarted()) {
+
+
+        while(!isStarted()) { //needs a godo way to exit out of the loop
             //read the camera, and store the position, increase the confidence rating based ont eh consitancy of readings
-            int[] center = Robot.center();
-            int pos = -1;
-            for (int i = 0; ranges.length > i; i++) {
-                if (center[0] > ranges[i][0] && center[0] < ranges[i][1]) {
-                    pos = i;
-                }
+            recognize_block();
+
+
+
+        }
+        telemetry.addData("pos guess",most_recent_position);
+        telemetry.update();
+
+        {
+
+            Robot.resetTime();
+            ElapsedTime pantTime = new ElapsedTime();
+            while (!checkDone(500)) { //need to check if some are done
+                //Robot.setMotors(powers, 1);
+                Robot.pantagraphDown(pantTime);
+                //Robot.intake();
             }
-           if(pos != -1) {
-               most_recent_position = pos;
-               //confiedences not implemented yet
-               //will need to read motion sensors or somethingd
-               //probably don't program it unless its not working well or something
-           }
-
-
+            Robot.reset_pow();
         }
 
 
 
-
-
-        //forward rotation is 1,0
-
-
-        moveDirMax(0,-1,0,move_from_wall,500);
-
-        if(most_recent_position != 1) { //if its 1, then it was in the middle
-            if(most_recent_position ==2) { //then to the right
-                //Move Diagonally, sicne it should be faster, make sure orient keep this at the right angle
-                //
-                moveOrient(-1,-1,0,0,block_distance,1000); //these don't work
-            }
-            else {
-                moveOrient(1,-1,0,0,block_distance,1000); //these don't work
-            }
+        //extra time to move the pantagraph down
+        moveDirMax(0,-1,0,move_from_wall,500,-1,0);
+        if(most_recent_position == 2) { //then to the right
+            moveDirMax(-1,0,0,(int) (block_distance_x/Math.sqrt(2)),2000,-1,0);
+            moveDirMax(0,-1,0,(int) (block_distance/Math.sqrt(2)),3000,-1,0); //these don't work
         }
-        else {
+        if(most_recent_position == 0) {
+            moveDirMax(1,0,0,(int) (block_distance_x/Math.sqrt(2)),2000,-1,0);
+            moveDirMax(0,-1,0,(int) (block_distance/Math.sqrt(2)),3000,-1,0);
+            //moveOrient(1,-1,0,0,block_distance,1000); //these don't work
+
+        }
+        if (most_recent_position == 1) {
             //the distance will have to be shorter here
             //need to divide by sqrt(2), since this is a 45,45,90 triangle, and we want ot move
             //and equal amount in terms of y
-            moveOrient(0,-1,0,0,(int) (block_distance/Math.sqrt(2)),1000);
+            moveDirMax(0, -1, 0, (int) (block_distance / Math.sqrt(2)), 1000,-1,0);
         }
-        //moveOrient(0,0,-1,0,5000,2000); //not sure the correct distance, since this is based on the error we end up having
+
+
+        {
+
+            Robot.resetTime();
+            double[] powers = motorPower.calcMotorsFull(0, -.6, 0);
+            for (int i = 0; Robot.motors.length > i; i++) {
+                Robot.motors[i].setTargetPosition((int) (Math.abs(powers[i])/powers[i]*block_forward_dist)); //can amke this faster
+            }
+            Robot.setMotors(powers, 1);
+            ElapsedTime pantTime = new ElapsedTime();
+            while (!checkDone(3000)) { //need to check if some are done
+                Robot.setMotors(powers, 1);
+                Robot.pantagraphDown(pantTime);
+                Robot.intake();
+            }
+            Robot.reset_pow();
+        }
+        //now we have intaked the block, so lets quickly move back
+        //notee: still have ot accoutn for the difference in x position caused by goign for different bloccks
+        moveDirMax(0,1,0,(int) (block_forward_dist+(block_distance/Math.sqrt(2))-wall_buffer),4000);
+
+        //actually, we coudl turn here if we wanted to
+        turnOrient(0,1,4500,5500);//doesnt need to be that long
+        if (most_recent_position ==2) {
+            moveDirMax(0,-1,0,(int) (line_dist_from_start+ (block_distance_x/Math.sqrt(2))),2000);
+
+        }
+
+        if (most_recent_position == 0) {
+            moveDirMax(0,-1,0,(int) (line_dist_from_start- (block_distance_x/Math.sqrt(2)) ),2000);
+        }
+        else {
+            moveDirMax(0,-1,0, (line_dist_from_start ),2000);
+        }
+        //now we are at the line, now we want to be able ot place the block, should be pointed
+        moveDirMax(0,-1,0,foundation_dist,5000,1,0);
+        turnOrient(-1,0,2500,3500);
+        //move back a bit to reposition
+        //moveDir(0,.8,0,600,1500); //repositioning phase //skip this for now
+        moveDirMax(0,-1,0,foundation_forward-300,3000); //move towards foundation
+        //moveDirMax(0,-1,0,foundation_buff,3000,0,-1);
+        moveDir(0,-.5,0,500,1000); // a little bit more on the slow side, to ensur eit doesn't push it too much
+        { //outtake for a second
+
+            Robot.resetTime();
+
+            ElapsedTime pantTime = new ElapsedTime();
+            while (pantTime.milliseconds() < 1000  ) {
+
+
+                Robot.outtake(.7);
+            }
+            Robot.resetTime();
+            Robot.reset_pow();
+        }
+
+        moveDirMax(0,1,0,foundation_back,3000);
+        turnOrient(1,0,3500,4500);
+        //moveDirMax(1,0,0,foundation_side,3000); //not sure if this is in the right direction
+        //moveDirMax(1,0,0,2000,3000); //2000?
+
+        moveDir(0,.5,0,foundation_back+foundation_buff,3000);
+        { //outtake for a second
+
+            Robot.resetTime();
+
+            ElapsedTime pantTime = new ElapsedTime();
+            while (pantTime.milliseconds() < 2500  ) {
+
+
+                Robot.runServoDown();
+            }
+            Robot.reset_pow();
+        }
+        //should it go max speed, or should it like ramp up, or something like that?
+        moveDirMax(0,-1,0,foundation_pull,3000);
+        turnOrient(0,-1,3000,3000);
+        { //outtake for a second
+
+            Robot.resetTime();
+
+            ElapsedTime pantTime = new ElapsedTime();
+            while (pantTime.milliseconds() < 1500  ) {
+
+
+                Robot.runServoUp();
+            }
+            Robot.reset_pow();
+        }
+        //now turn back
+        moveDirMax(0,1,0,foundation_dist,3000); //move back
+        //pretty sure this will be too far, but whatever
+
+        //now we need to move back to park, but we have to be carfule of the other robot
+        //NOTE: lets put a test robot on the field, or measur eout where it would be
+        //now we put the foundatoin on, so lets
+
+        //now put the thing down
+
+        //move back,this time backwards
+
+        //the we coudl outtake
+        //move forward, and point towards foundation
+        //moveDirMax(0,-1,0,foundation_dist,3000,0,-1); //push block out while we move forward
+
+        //
+        //
+        //
+
+
+
+        //now we should be at the center line
+        //from here, our job is to move to the foundation
+        //then we want to
+
         //need a turn orient mode, where it turns itself given a certain amoutn of time, and checks if its within a certain distance
 
 
         //reorient the robot
+        //not sure if it works to here
 
+
+        /*
         moveOrient(0,-.7,0,0,block_forward_dist,3000,-1,1);
 
         //move based on position
@@ -91,7 +223,7 @@ public class AutoTestVuforia extends LinearOpMode {
             double change_x = -block_distance/Math.sqrt(2);
             double change_y = block_forward_dist;
             double dist = Math.sqrt(change_x*change_x + change_y*change_y);
-            moveOrient(change_x/dist,change_y/dist,0,0,(int)dist,4000);
+            moveOrient(-change_x/dist,change_y/dist,0,0,(int)dist,4000);
             //
         }
         else if(most_recent_position==2) {
@@ -99,6 +231,7 @@ public class AutoTestVuforia extends LinearOpMode {
             double change_x = block_distance/Math.sqrt(2); //positive on this one
             double change_y = block_forward_dist;
             double dist = Math.sqrt(change_x*change_x + change_y*change_y);
+            //note sure which one should be negative, but one of these should be
             moveOrient(change_x/dist,change_y/dist,0,0,(int)dist,4000);
             //
         }
@@ -110,7 +243,25 @@ public class AutoTestVuforia extends LinearOpMode {
 
         moveOrient(-1,0,0,0,line_dist_from_start+line_buffer,6000); //move to the line
 
-        moveOrient(1,0,0,0,line_buffer,4000,1,-1); //out take block while I move
+        //now have to turn to face the foundation
+        turnOrient(0,-1,3000,3000);
+
+        moveOrient(0,-1,0,0,foundation_dist,2000,1,0); //move pantagraph up
+
+        moveOrient(0,-1,0,0,foundation_buff,1000,-1,-1); //outtake onto the foundation , move pantagraph down
+
+        moveOrient(0,1,0,0,foundation_back,1000,-1,0); //move back a little so we have extra space to turn
+        turnOrient(0,1,3000,3000); //spin into opposite direction
+        moveOrient(0,-1,0,0,foundation_back,1000); // go back to where we were, but backwards, so we can grab the foudnation
+        //now w
+
+        //now we need ot include contorl of the foundation grabber
+        //drop stone
+        //now should be oriented towards the foundation
+
+        //moveOrient(-1,0,0,0,foundation_dist,3000);
+
+        //moveOrient(1,0,0,0,line_buffer,4000,1,-1); //out take block while I move
 
         //should end on a line
 
@@ -119,7 +270,7 @@ public class AutoTestVuforia extends LinearOpMode {
             //we will want to move the panagraph up during this time
                 //actually, not for now, since it seems ot drop the block pretty often, so we will move the pantagraph up on the way down
         //
-
+        */
 
         
 
@@ -132,6 +283,32 @@ public class AutoTestVuforia extends LinearOpMode {
         //maybe make this equal to teh game pad stuff, so we just mimic what woudl happen with game pad
 
     }
+    public void recognize_block() {
+        long start = System.currentTimeMillis();
+        int[] center = Robot.center();
+        int pos = -1;
+        telemetry.addData("pos x",center[0]);
+        telemetry.addData("pos y",center[1]);
+        telemetry.addData("pos:",most_recent_position);
+        for (int i = 0; ranges.length > i; i++) {
+
+            telemetry.addData("range:" +i, "low" + ranges[i][0] + " hi:" + ranges[i][1]);
+            if (center[0] >= ranges[i][0] && center[0] <= ranges[i][1]) {
+                pos = i;
+                telemetry.addData("new position!","new!");
+            }
+
+        }
+        if(pos != -1) {
+            most_recent_position = pos;
+
+            //confiedences not implemented yet
+            //will need to read motion sensors or somethingd
+            //probably don't program it unless its not working well or something
+        }
+        telemetry.addData("time taken to calculate (millis)",System.currentTimeMillis()-start);
+        telemetry.update();
+    }
 
 
     public void sleep(int maxtime) {
@@ -140,6 +317,18 @@ public class AutoTestVuforia extends LinearOpMode {
             //nothing
         }
 
+    }
+    public void foundation_grabber(int maxtime, double power, boolean down) { //no limit switch yet
+        ElapsedTime time = new ElapsedTime();
+        Robot.power_foundation = .9;
+        while(time.milliseconds() < maxtime) {
+            if (down) {
+                Robot.runServoDown();
+            }
+            else {
+                Robot.runServoUp();
+            }
+        }
     }
 
     public void moveOrientUpdate(double vx, double vy, double rot,int rot2, int dist, int max_time) {
@@ -188,9 +377,11 @@ public class AutoTestVuforia extends LinearOpMode {
     }
     public void turnOrient(double gamepady, double gamepadx, int max_time, int max_dist) {
 
+        Robot.resetTime();
+        Robot.reset_pow();
 
-        double rot = -Robot.gamepad1.right_stick_y;
-        double rot2 = Robot.gamepad1.right_stick_x;
+        double rot = -gamepady;
+        double rot2 = gamepadx;
 
 
         {
@@ -201,14 +392,14 @@ public class AutoTestVuforia extends LinearOpMode {
             double nrot = 0;
 
 
-            if (Math.abs(goal_rot_ang) > 0.40) { //amount goal angle needs to be off to actually turn in that direction
+            if (Math.abs(goal_rot_ang) > 0.20) { //amount goal angle needs to be off to actually turn in that direction
 
-                nrot = goal_rot_ang * (mag_rot / 2.0); //rotation is the direction of rotation
+                nrot = goal_rot_ang * (mag_rot); //rotation is the direction of rotation
                 //test value of /2.0 just ot
                 //maybe do if cur_ang + ang_turn > goal_ang then turn only goal_ang-cur_ang
             } else {
 
-                nrot = goal_rot_ang * (mag_rot) * (Math.abs(goal_rot_ang) + .1); //rotation is the direction of rotation
+                nrot = goal_rot_ang * (mag_rot) * (Math.abs(goal_rot_ang) + .25); //rotation is the direction of rotation
                 // nrot = nrot>0?.1 + nrot:-.1+nrot;
             }
 
@@ -218,13 +409,21 @@ public class AutoTestVuforia extends LinearOpMode {
 
             for (int i = 0; Robot.motors.length > i; i++) {
                 Robot.motors[i].setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-                Robot.motors[i].setTargetPosition((int) ((Math.abs(powers[i]) / powers[i]) * max_dist)); //can amke this faster
-
+                //Robot.motors[i].setTargetPosition((int) ((Math.abs(powers[i]) / powers[i]) * max_dist)); //can amke this faster
+                //maybe rmeove the get arget position and see what happens, it if doesn't crash, then we just run for time
             }
-            Robot.setMotors(0, 0, nrot, true);
+            Robot.setMotors(0, 0, nrot, false);
         }
-        double goal_rot_ang = 100;
-        while(!checkDone(max_time) && Math.abs(goal_rot_ang) > .05) { //not sure if .05 is the rigth value, will have to test it a little
+        double goal_rot_ang;
+        {
+            double imu_ang = (Robot.imu.getAngularOrientation().firstAngle + 0 * Math.PI / 2.0) % Math.PI;
+            double ang_rot = Math.atan2(rot, rot2) - Math.PI / 2.0; //angle your game stick is facing
+            //double mag_rot = Math.sqrt(rot * rot + rot2 * rot2);
+            goal_rot_ang = Robot.distanceTurn(-imu_ang, ang_rot); //
+        }
+        boolean change_sign  = false;
+        boolean  prev_positive = (goal_rot_ang > 0);
+        while( (! (Robot.timeElapsed() > max_time) && !change_sign) || Math.abs(goal_rot_ang) > 1) { //not sure if .05 is the rigth value, will have to test it a little
 
             double imu_ang = (Robot.imu.getAngularOrientation().firstAngle + 0 * Math.PI / 2.0) % Math.PI;
             double ang_rot = Math.atan2(rot, rot2) - Math.PI / 2.0; //angle your game stick is facing
@@ -232,32 +431,51 @@ public class AutoTestVuforia extends LinearOpMode {
             goal_rot_ang = Robot.distanceTurn(-imu_ang, ang_rot); //
             double nrot = 0;
 
+            if (prev_positive && goal_rot_ang < 0) {
+                change_sign = true;
+            }
+            if (!prev_positive && goal_rot_ang > 0) {
+                change_sign = true;
+            }
 
-            if (Math.abs(goal_rot_ang) > 0.40) { //amount goal angle needs to be off to actually turn in that direction
 
-                nrot = goal_rot_ang * (mag_rot / 2.0); //rotation is the direction of rotation
+            if (Math.abs(goal_rot_ang) > 0.20) { //amount goal angle needs to be off to actually turn in that direction
+
+                nrot = goal_rot_ang * (mag_rot ); //rotation is the direction of rotation
                 //test value of /2.0 just ot
                 //maybe do if cur_ang + ang_turn > goal_ang then turn only goal_ang-cur_ang
             } else {
 
-                nrot = goal_rot_ang * (mag_rot) * (Math.abs(goal_rot_ang) + .1); //rotation is the direction of rotation
+                //nrot = goal_rot_ang * (mag_rot) * (Math.abs(goal_rot_ang) + .4); //rotation is the direction of rotation
+                nrot = goal_rot_ang * (mag_rot) * (Math.abs(goal_rot_ang) + .2);
                 // nrot = nrot>0?.1 + nrot:-.1+nrot;
             }
+            telemetry.addData("ang off",goal_rot_ang);
+            //telemetry.update();
 
-            Robot.resetTime();
+            telemetry.addData("time",max_time);
+            telemetry.update();
+
 
             double[] powers = motorPower.calcMotorsFull(0, 0, nrot);
-
+            /*
             for (int i = 0; Robot.motors.length > i; i++) {
                 Robot.motors[i].setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-                Robot.motors[i].setTargetPosition((int) ((Math.abs(powers[i]) / powers[i]) * max_dist)); //can amke this faster
-
+                //Robot.motors[i].setTargetPosition((int) ((Math.abs(powers[i]) / powers[i]) * max_dist)); //can amke this faster
+                //ignore target position for now?
+                //
             }
-            Robot.setMotors(0, 0, nrot, true);
+             */
+            Robot.setMotors(0, 0, nrot, Math.abs(goal_rot_ang) > 0.20);
 
         }
+        Robot.reset_pow();
+        Robot.resetTime();//reset these things at the end
+
+        sleep(150);
 
 
+        //maybe want to turn in place, because it seems time might start ot b ea problem
 
 
     }
@@ -299,7 +517,7 @@ public class AutoTestVuforia extends LinearOpMode {
 
         }
         Robot.reset_pow();
-        //sleep(100); //lets get rid of this sleep for now
+        sleep(100); //lets get rid of this sleep for now
 
     }
     public void moveOrient(double vx, double vy, double rot,int rot2, int dist, int max_time) { //this probalby needs some work
@@ -328,8 +546,13 @@ public class AutoTestVuforia extends LinearOpMode {
     }
     public void moveDirMax(double vx, double vy, double rot,int dist, int max_time) {
 
+        moveDirMax(vx,vy,rot,dist,max_time,0,0);
+    }
+    public void moveDirMax(double vx, double vy, double rot,int dist, int max_time,double pant_pow,double in_pow) {
+
 
         Robot.resetTime();
+        Robot.reset_pow();
         double[] powers = motorPower.calcMotorsFull(vx, vy, rot);
         for (int i = 0; Robot.motors.length > i; i++) {
             Robot.motors[i].setMode(DcMotor.RunMode.RUN_USING_ENCODER);
@@ -339,6 +562,9 @@ public class AutoTestVuforia extends LinearOpMode {
         Robot.setMotorsMax(powers, 1);
         while (!checkDone(max_time)) { //need to check if some are done
             Robot.setMotorsMax(powers, 1);
+            Robot.pantagraph.setPower(pant_pow);
+            Robot.intakeR.setPower(in_pow);
+            Robot.intakeL.setPower(in_pow);
         }
         Robot.reset_pow();
         sleep(100);

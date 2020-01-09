@@ -12,14 +12,15 @@ import java.util.Arrays;
 
 
 class Skyblock {
-    static final int dwn_sample = 1;
+    static final int dwn_sample = 3; //3 probably works best
     static final int a = 30/dwn_sample; //size of read of pixels
     static final int b = 30/dwn_sample; //size of read of pixels
-    static final int acc = 4/dwn_sample; //accuracy of read //make acc and acc1/ acc2 go down, //works up to 8 or 9
+    static final int acc = 6/dwn_sample; //accuracy of read //make acc and acc1/ acc2 go down, //works up to 8 or 9
+    //a little less accurate with acc = 2, but its much faster
     static int width;
     static int height;
     static color[] pixels;
-    static final int acc1 = 30/dwn_sample;  //different acc etc //works fine at 40
+    static final int acc1 = 60/dwn_sample;  //different acc etc //works fine at 40, 60 might be a bit large, but we really need speed here
     static final int acc2 = acc1;
     static final int x_size = 200/dwn_sample; //test different sizes etc
     static final int y_size = 120/dwn_sample;
@@ -198,42 +199,49 @@ class Skyblock {
         }
         return res;
     }
-    static color[] getPixels(color[] pxls, int ws,int hs, int w, int h) {
-        int s = ws + hs*width;
+    static color[] getPixels(final color[] pxls, final int ws,final int hs,final int w,final int h) {
+        final int s = ws + hs*width;
         return getPixels(pxls,s,w,h);
     }
-    static color[] getPixels(color[] pxls, int s, int w, int h) {
+    static color[] getPixels(final color[] pxls,final int s,final int w,final int h) {
         color[] res = new color[w * h];
         for (int i = 0; h > i; i++) {
+            final int mult= width*i;
             for (int j = 0; w > j; j++) {
 
-                res[i*w + j] = pxls[s + j + (width * i)];
+                res[i*w + j] = pxls[s + j + mult];
 
             }
             //System.out.println(res[i*w]); should always be equal
         }
         return res;
     }
-    static double[][] getPixels(double[][] pxls, int ws,int hs, int w, int h) {
-        int s = ws + hs*width;
+    static double[][] getPixels(double[][] pxls,final  int ws,final int hs,final  int w,final  int h) {
+        final int s = ws + hs*width;
         return getPixels(pxls,s,w,h);
     }
-    static double[][] getPixels(double[][] pxls, int s, int w, int h) {
+    static double[][] getPixels(double[][] pxls, final int s, final int w, final int h) {
         double[][] res = new double[w * h][0];
         for (int i = 0; h > i; i++) {
-            for (int j = 0; w > j; j++) {
-                if (s + j + (width * i) > pxls.length-1) {
-                    res[i*w + j] = new double[]{0,0,0}; //assume matched nothing
-                }
-                else if (j + (s%width) > width) {
-                    res[i*w + j] = new double[]{0,0,0}; //assume matched nothing if went over on right
-                }
+            boolean will_pass = (w + (s%width) > width) && ((s+w+(h*width))>pxls.length-1);
+            if (will_pass) { //this isn't all that elegant, but its faster to split into these two sections
+                for (int j = 0; w > j; j++) {
 
-                else {
-                    res[i*w + j] = pxls[s + j + (width * i)];
+                    if (s + j + (width * i) > pxls.length - 1) {
+                        res[i * w + j] = new double[]{0, 0, 0}; //assume matched nothing
+                    } else if (j + (s % width) > width) {
+                        res[i * w + j] = new double[]{0, 0, 0}; //assume matched nothing if went over on right
+                    } else {
+                        res[i * w + j] = pxls[s + j + (width * i)];
+                    }
+
+
                 }
-
-
+            }
+            else {
+                for (int j = 0; w > j; j++) {
+                    res[i * w + j] = pxls[s + j + (width * i)];
+                }
             }
             //System.out.println(res[i*w]); should always be equal
         }
@@ -250,18 +258,19 @@ class Skyblock {
         double cur2= 0;
         double res= 0;
         double res2= 0;
+        final double cnst = (255+170.0+ (255-29));
         final int div = pxls.length/2;
         for (int i =0; pxls.length > i; i++) { //only looks for horizontal pixels that are the same currently
             final int ylw = Skyblock.colorDist(yellow, pxls[i]);
             final int blc = Skyblock.colorDist(black, pxls[i]);
 
 
-            double val = ( (255+170.0+ (255-29) ) - ylw) /(255+170.0+ (255-29));
+            double val = (cnst - ylw) /(cnst);
             cur += val;
             cur *= .99;
             res += val * cur*cur*cur;
             //----------
-            double val2 = ( (255+170.0+ (255-29) ) - blc) /(255+170.0+ (255-29));
+            double val2 = ( cnst  - blc) /(cnst);
             cur2 += val2;
             cur2 *= .99;
             res2 += val2 * cur2*cur2*cur2;

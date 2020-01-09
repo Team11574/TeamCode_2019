@@ -4,10 +4,12 @@ package us.ftcteam11574.teamcode2019;
 
 import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.hardware.rev.Rev2mDistanceSensor;
+import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.vuforia.Image;
 import com.vuforia.PIXEL_FORMAT;
@@ -42,9 +44,14 @@ public class Robot {
     public static HardwareMap hardwareMap;
     public static Gamepad gamepad1;
     public static Gamepad gamepad2;
-    /* CAMERA
+    public static CRServo foundation1;
+    public static CRServo foundation2;
+    public static double power_foundation = 1; //start at the max power
+
+
+    // /* CAMERA
     public static WebcamName webCam;
-    */
+
 
     public static VuforiaLocalizer vuforia;
 
@@ -59,6 +66,7 @@ public class Robot {
         tr.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         bl.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         br.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+
         // Tell the driver that initialization is complete.
         telemetry.addData("Status", "Initialized");
     }
@@ -73,7 +81,9 @@ public class Robot {
         for (int i = 0; motors.length > i; i++) {
 
             //motors[i].setPower(0);
+            motors[i].setTargetPosition(0);
             Robot.motors[i].setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER); //reset encoders to start
+
             motors[i].setMode(DcMotor.RunMode.RUN_TO_POSITION);
         }
 
@@ -95,6 +105,8 @@ public class Robot {
         intakeR  = hardwareMap.get(DcMotor.class, "intakeR");  //225 degrees //v2
         intakeL  = hardwareMap.get(DcMotor.class, "intakeL");  //315 degrees //v3
         pantagraph  = hardwareMap.get(DcMotor.class, "pant");  //315 degrees //v3
+        foundation1 = hardwareMap.get(CRServo.class,"foundation1");
+        foundation2 = hardwareMap.get(CRServo.class,"foundation2");
 
             //Don't initilaize,since its not working right now
         imu = hardwareMap.get(BNO055IMU.class, "imu");
@@ -113,11 +125,14 @@ public class Robot {
         bl.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         br.setDirection(DcMotor.Direction.FORWARD);
         br.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        foundation1.setDirection(CRServo.Direction.REVERSE);
+        foundation2.setDirection(CRServo.Direction.FORWARD);
         motors = new DcMotor[]{br,tr,tl,bl}; //
         mDistanceSensor = hardwareMap.get(Rev2mDistanceSensor.class, "distance");
 
-        /*
 
+         //This one is the correct one for now, I believe
+        // /*
         Vuforia.setFrameFormat(PIXEL_FORMAT.RGB565, true);
 
 
@@ -143,7 +158,7 @@ public class Robot {
 
         telemetry.addData("test","test");
         vuforia.setFrameQueueCapacity(3);
-        */
+        //*/
         //mColorSensor = hardwareMap.colorSensor.get("color"); //I think its causing too much lag
 
         /*  ***CAMERA***
@@ -290,6 +305,10 @@ public class Robot {
     public static void outtake() {
         Robot.intakeR.setPower(-1);
         Robot.intakeL.setPower(-1);
+    }
+    public static void outtake(double pow) {
+        Robot.intakeR.setPower(-pow);
+        Robot.intakeL.setPower(-pow);
     }
     public static void offtake() {
         Robot.intakeR.setPower(0);
@@ -584,5 +603,19 @@ public class Robot {
         return false;
 
     }
+    public static void runServoDown() {
+        foundation1.setPower(-power_foundation);
+        foundation2.setPower(-power_foundation);
+    }
+    public static void runServoUp() {
+        foundation1.setPower( power_foundation);
+        foundation2.setPower( power_foundation );
+    }
+    public static void stopServo() {
+        foundation1.setPower(0);
+        foundation2.setPower(0 );
+    }
+
+
 
 }
