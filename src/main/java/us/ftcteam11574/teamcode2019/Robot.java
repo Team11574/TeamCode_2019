@@ -61,6 +61,7 @@ public class Robot {
 
     public static void init_teleOp(Telemetry telemetry_, HardwareMap hardwareMap_, Gamepad gamepad1_, Gamepad gamepad2_) {
         overallInit(telemetry_,hardwareMap_,gamepad1_,gamepad2_);
+
         //webCam
         tl.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         tr.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
@@ -72,6 +73,7 @@ public class Robot {
     }
     public static void init_autoOp(Telemetry telemetry_, HardwareMap hardwareMap_, Gamepad gamepad1_, Gamepad gamepad2_) {
         overallInit(telemetry_,hardwareMap_,gamepad1_,gamepad2_);
+        initCamera();
         tl.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         tr.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         bl.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
@@ -133,6 +135,34 @@ public class Robot {
 
          //This one is the correct one for now, I believe
         // /*
+
+
+        //*/
+        //mColorSensor = hardwareMap.colorSensor.get("color"); //I think its causing too much lag
+
+        /*  ***CAMERA***
+         //Wait until we get it to find the camera before trying to get this to work
+        int cameraMonitorViewId = hardwareMap.appContext.getResources().getIdentifier("cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
+        VuforiaLocalizer.Parameters vu_parameters = new VuforiaLocalizer.Parameters(cameraMonitorViewId);
+
+
+        vu_parameters.vuforiaLicenseKey = "AV29AFb/////AAABma3tuKm8DE2/tKJA0LIvwcIWOzMsiVbx8yLAiSRl1l98p84lwbzzJMkqsJw7ySFusaR6sYtQoSN9rzPIjUVqJ/uLkqv/V0rllY9LtZS0bnUfiyYarG+ZIDk587QhB/+BdT2EMo7w7+dHPO3Y9YOoFMZom016W6kYU+Tc7/OaN0AMXb6zGal02KRH3h913F+84o7J48sKXz0whgL1TSbfFQvYYyzijQlqzsmcvee4e3AI3L30L9AM1+COMhKcsIuYjpuUl1/oELl6XSCC7Q3UVnrKnah1WQb2C8m1KdsGgPbPp42rFC4ArXydJI193CEEENY/fyHvxxh8/aEb4fxxmybXkPk93BVpPZL6co8hFpSF";
+
+
+        vu_parameters.cameraName = webCam;
+
+
+        vuforia = ClassFactory.getInstance().createVuforia(vu_parameters);
+
+        vuforia.setFrameQueueCapacity(3);
+        Vuforia.setFrameFormat(PIXEL_FORMAT.RGB888, true);
+        */
+
+
+
+
+    }
+    public static void initCamera() {
         Vuforia.setFrameFormat(PIXEL_FORMAT.RGB565, true);
 
 
@@ -158,29 +188,6 @@ public class Robot {
 
         telemetry.addData("test","test");
         vuforia.setFrameQueueCapacity(3);
-        //*/
-        //mColorSensor = hardwareMap.colorSensor.get("color"); //I think its causing too much lag
-
-        /*  ***CAMERA***
-         //Wait until we get it to find the camera before trying to get this to work
-        int cameraMonitorViewId = hardwareMap.appContext.getResources().getIdentifier("cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
-        VuforiaLocalizer.Parameters vu_parameters = new VuforiaLocalizer.Parameters(cameraMonitorViewId);
-
-
-        vu_parameters.vuforiaLicenseKey = "AV29AFb/////AAABma3tuKm8DE2/tKJA0LIvwcIWOzMsiVbx8yLAiSRl1l98p84lwbzzJMkqsJw7ySFusaR6sYtQoSN9rzPIjUVqJ/uLkqv/V0rllY9LtZS0bnUfiyYarG+ZIDk587QhB/+BdT2EMo7w7+dHPO3Y9YOoFMZom016W6kYU+Tc7/OaN0AMXb6zGal02KRH3h913F+84o7J48sKXz0whgL1TSbfFQvYYyzijQlqzsmcvee4e3AI3L30L9AM1+COMhKcsIuYjpuUl1/oELl6XSCC7Q3UVnrKnah1WQb2C8m1KdsGgPbPp42rFC4ArXydJI193CEEENY/fyHvxxh8/aEb4fxxmybXkPk93BVpPZL6co8hFpSF";
-
-
-        vu_parameters.cameraName = webCam;
-
-
-        vuforia = ClassFactory.getInstance().createVuforia(vu_parameters);
-
-        vuforia.setFrameQueueCapacity(3);
-        Vuforia.setFrameFormat(PIXEL_FORMAT.RGB888, true);
-        */
-
-
-
     }
     public static double distanceTurn(double cur, double goalAngle) {
         //The way to calculate this is as follows:
@@ -297,10 +304,16 @@ public class Robot {
             Robot.motors[i].setPower(0); //this should reset all the motors
             Robot.motors[i].setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         }
+        Robot.foundation1.setPower(0);
+        Robot.foundation2.setPower(0);
     }
     public static void intake() {
         Robot.intakeR.setPower(1);
         Robot.intakeL.setPower(1);
+    }
+    public static void intake(double pow) {
+        Robot.intakeR.setPower(pow);
+        Robot.intakeL.setPower(pow);
     }
     public static void outtake() {
         Robot.intakeR.setPower(-1);

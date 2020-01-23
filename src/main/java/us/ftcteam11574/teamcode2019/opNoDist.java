@@ -91,8 +91,8 @@ public class opNoDist extends OpMode
     private boolean previous_block_state = false;
     boolean dpad_right = false;
     boolean dpad_left = false;
-    @Override
-    public void loop() {
+
+    public void run() {
         frame++;
         frame = frame % 100; //up to 100
 
@@ -100,7 +100,7 @@ public class opNoDist extends OpMode
         double vy = Robot.gamepad1.left_stick_y;
         double rot = -Robot.gamepad1.right_stick_y;
         double rot2 = Robot.gamepad1.right_stick_x;
-telemetry.addData("power",Robot.power_foundation);
+        //telemetry.addData("power",Robot.power_foundation);
         if(Robot.gamepad1.dpad_down) {
             Robot.runServoDown();
         }
@@ -224,21 +224,9 @@ telemetry.addData("power",Robot.power_foundation);
             //telemetry.addData("First ang", "Ang1:" + imu.getAngularOrientation().firstAngle);
         }
         else {
-            //TEST WITH MAX MODE OFF
             rot2 = -rot2;
-            //maybe need to swap rot2 and rot1
-            //somethign else is a problem though,s
             double ang = Math.atan2(vy,-vx);
             double mag = Math.sqrt(vy*vy + vx*vx);
-            //atan works like this
-            //         90
-            //        ^
-            // +-180  <   > 0
-            //      -90 V
-            //having some trouble with resetting
-            //When both 0, shoudl be equal to -90
-            //At 0, as if 90, so goes forward (CHECK)
-            //At 90, as if
             double imu_ang =(Robot.imu.getAngularOrientation().firstAngle + 0*Math.PI/2.0) % Math.PI;
             double goal_ang = (ang + (-imu_ang))  ; //This needs to be offset by some number of degrees, because when both are zero, it should move foward
             double ang_rot = Math.atan2(rot,rot2)- Math.PI/2.0; //angle your game stick is facing
@@ -249,33 +237,35 @@ telemetry.addData("power",Robot.power_foundation);
             double nvy = Math.sin(goal_ang) * mag;
             if(max_mode) {
                 if (Math.abs(goal_rot_ang) > 0.40) { //amount goal angle needs to be off to actually turn in that direction
-
                     nrot = goal_rot_ang * (mag_rot / 2.0); //rotation is the direction of rotation
-                    //test value of /2.0 just ot
-                    //maybe do if cur_ang + ang_turn > goal_ang then turn only goal_ang-cur_ang
-                } else {
 
+                } else {
                     nrot = goal_rot_ang * (mag_rot) * (Math.abs(goal_rot_ang) + .1); //rotation is the direction of rotation
-                    // nrot = nrot>0?.1 + nrot:-.1+nrot;
+                    // nrot = nrot>0?.1 + nrot:-.1+nrot; //old version
                 }
             }
             else {
                 nrot = goal_rot_ang;
             }
-            //maybe need to make the turn less dominant
-            //-90first angle to 180 goal angle
+            //maybe need to make the turn less dominant in the equation
             double mult = 1;
             Robot.setMotors(nvx,nvy,nrot*mult,max_mode);
             //only going from -90 to 90 for some reason, getting to zero at two different places
             double[] powers = motorPower.calcMotorsFull(nvx, nvy, nrot);//can also calc max, which always goes the fastest
             //telemetry.addData("Ang of right stick",ang * 180/Math.PI);
+            /*
             telemetry.addData("Ang of left stick",ang_rot * 180/Math.PI); //wait, how did this get to 270?
             telemetry.addData("Info", ("Goal rot _ang: " + goal_rot_ang * 180/Math.PI));
             telemetry.addData("Motors", ("Vx: " + nvx + "----Vy" + nvy + "---Rot" + nrot));
             telemetry.addData("Motors", "v0 (%.2f), v1 (%.2f), v2 (%.2f), v3 (%.2f)", powers[0], powers[1], powers[2], powers[3]);
             telemetry.addData("First ang", "Ang1:" + (Robot.imu.getAngularOrientation().firstAngle) * 180/Math.PI );
+            */
             //I think it swaps at 180 instead of 360 on the angle orientation mode with first angle
+
         }
+
+
+        //stop
         //assuming that this returns as its supposed to
         //imu.getAngularVelocity();
         //imu.getAcceleration();
@@ -285,6 +275,23 @@ telemetry.addData("power",Robot.power_foundation);
 
 
     }
+    @Override
+    public void loop() {
+        try {
+            run();
+        }
+        catch (Throwable t) {
+            if (t instanceof StopException) {
+                Robot.reset_pow();
+                return;
+
+            }
+            throw t;
+
+
+        }
+
+    }
 
     /*
      * Code to run ONCE after the driver hits STOP
@@ -292,6 +299,9 @@ telemetry.addData("power",Robot.power_foundation);
 
     @Override
     public void stop() {
+        Robot.reset_pow();
+        //
+
     }
 
 
@@ -308,6 +318,9 @@ telemetry.addData("power",Robot.power_foundation);
             }
         }
         return Math.atan(y/x)+((((Math.abs(x)/x)-1)/2) * Math.PI);
+    }
+    public class StopException extends RuntimeException {
+        public StopException() {super();}
     }
 
 

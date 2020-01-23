@@ -6,32 +6,31 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-@Autonomous(name="Blue Block Foundation", group="Autonomous")
-public class AutoTestVuforia extends LinearOpMode {
+@Autonomous(name="Red 2 Blocks", group="Autonomous")
+public class AutoBlueBlocks extends LinearOpMode {
 
 
 
 
     //NOTES:
-        //need to fix the init mode on the Robot, it still doesn't have the webcam connected
-        //call center() to get the center from the camera
-        //will want to create a trunacate mode, since we probably won't want to look along the entire y range
+    //need to fix the init mode on the Robot, it still doesn't have the webcam connected
+    //call center() to get the center from the camera
+    //will want to create a trunacate mode, since we probably won't want to look along the entire y range
     final int line_buffer = 1000;
 
     final int wall_buffer = 1900;//distance from wall after you back up, applies to all times after
-        //was previously 500 when it worked
     //you have grabbed the black, hopefully will allow the robot to avoid the other robot
     final int line_dist_from_start = 1000; //distance from start to the line under the skybridge
     final int block_distance = 1700; //Distance from the middle block to either the rigth or left block
     final int block_distance_x = 780;
     final int move_from_wall = 100; //Distance to move foward orm the wall to not be at risk to get caught on the wall
     final int block_forward_dist = 1600; //Distance to move foward while grabbing the block
-    final int foundation_dist = 5350;
-    final int foundation_forward =2350-wall_buffer;
+    final int extra_dist = 2350;
+    final int foundation_forward =2150-wall_buffer;
     final int foundation_side = 200;
     final int foundation_buff = 550; //buffer for moving it outwards
     final int foundation_back = 450;
-    final int foundation_pull = 2300;
+    final int foundation_pull = 2000;
 
 
 
@@ -56,7 +55,6 @@ public class AutoTestVuforia extends LinearOpMode {
 
         }
     }
-
     public void runOpMode2() {
         //Intended start: TBD
         Robot.init_autoOp(telemetry, hardwareMap,gamepad1,gamepad2);
@@ -121,7 +119,12 @@ public class AutoTestVuforia extends LinearOpMode {
             while (!checkDone(3000)) { //need to check if some are done
                 Robot.setMotors(powers, 1);
                 Robot.pantagraphDown(pantTime);
-                Robot.intake(.85); //maybe .7 will be more relaible
+                if (most_recent_position == 2) {
+                    Robot.intake(1);
+                }
+                else {
+                    Robot.intake(.7); //maybe .7 will be more relaible
+                }
             }
             Robot.reset_pow();
         }
@@ -130,30 +133,25 @@ public class AutoTestVuforia extends LinearOpMode {
         moveDirMax(0,1,0,(int) (block_forward_dist+(block_distance/Math.sqrt(2))-wall_buffer),4000);
 
         //actually, we coudl turn here if we wanted to
-        turnOrient(0,1,2050,5500);//doesnt need to be that long
+        turnOrient(0,-1,1500,8500);//doesnt need to be that long
+        //
         //turnOrient(0,1,2500,5500); //possibly faster
         //I could gain a lot of time if I was turning while moving I believe
         if (most_recent_position ==2) {
-            moveDirMax(0,-1,0,(int) (line_dist_from_start+ (block_distance_x/Math.sqrt(2))),2000);
+            moveDirMax(0,-1,0,(int) (line_dist_from_start+ (block_distance_x/Math.sqrt(2))),3000);
 
         }
 
         if (most_recent_position == 0) {
-            moveDirMax(0,-1,0,(int) (line_dist_from_start- (block_distance_x/Math.sqrt(2)) ),2000);
+            moveDirMax(0,-1,0,(int) (line_dist_from_start- (block_distance_x/Math.sqrt(2)) ),3000);
         }
         else {
-            moveDirMax(0,-1,0, (line_dist_from_start ),2000);
+            moveDirMax(0,-1,0, (line_dist_from_start ),3000);
         }
+
         //now we are at the line, now we want to be able ot place the block, should be pointed
-        turnOrient(0,1,500,3500); //turn to ensure direction
-        moveDirMax(0,-1,0,foundation_dist,5000,1,0);
-        turnOrient(-1,0,1500,3500);
-        //turnOrient(-1,0,1500,3500); //could probably save time here
-        //move back a bit to reposition
-        //moveDir(0,.8,0,600,1500); //repositioning phase //skip this for now
-        moveDirMax(0,-1,0,foundation_forward-300,3000); //move towards foundation
-        //moveDirMax(0,-1,0,foundation_buff,3000,0,-1);
-        moveDir(0,-.5,0,500,1000); // a little bit more on the slow side, to ensur eit doesn't push it too much
+        turnOrient(0,-1,1000,3500);//doesnt need to be that long
+        moveDirMax(0,-1,0,extra_dist,5000,1,0);
         { //outtake for a second
 
             Robot.resetTime();
@@ -162,155 +160,103 @@ public class AutoTestVuforia extends LinearOpMode {
             while (pantTime.milliseconds() < 1000  ) {
 
 
-                Robot.outtake(.7);
-                //if(pantTime.milliseconds() < 500) {
-                    Robot.runServoDown(); //is this the right amount of time?
-                //}
+                Robot.outtake(1);
             }
             Robot.resetTime();
             Robot.reset_pow();
         }
-        moveDirMax(0,1,0,foundation_back,3000);
-        turnOrient(1,0,2500,4500);
-        //moveDirMax(1,0,0,foundation_side,3000); //not sure if this is in the right direction
-        //moveDirMax(1,0,0,2000,3000); //2000?
+        turnOrient(0,-1,500,5000);
+        moveDirMax(0,1,0,extra_dist+line_dist_from_start+ ((int) (4.3*block_distance_x/Math.sqrt(2)) ),5000,-1,0);
+        //subtract some fi needed to make this faster
+        turnOrient(-1,0,2000,5000);
+        //gamepady is negative off??
 
-        moveDir(0,.5,0,foundation_back+foundation_buff,3000);
+        //now back at starting point, except a couple blocks over, could run same code with just an extra line or two
+
+        if(most_recent_position == 2) { //then to the right
+            moveDirMax(-1,0,0,(int) (3*block_distance_x/Math.sqrt(2)),2000,-1,0);
+            //moveDirMax(0,-1,0,(int) (block_distance/Math.sqrt(2)),3000,-1,0); //these don't work
+            //maybe coudl slightly improve this, but not by much, sine its limited by the speed of the pantagraph
+
+        }
+        if(most_recent_position == 0) {
+            moveDirMax(1,0,0,(int) (block_distance_x/Math.sqrt(2)),2000,-1,0);
+            //moveDirMax(0,-1,0,(int) (block_distance/Math.sqrt(2)),3000,-1,0);
+            //moveOrient(1,-1,0,0,block_distance,1000); //these don't work
+
+        }
+        if (most_recent_position == 1) {
+            //the distance will have to be shorter here
+            //need to divide by sqrt(2), since this is a 45,45,90 triangle, and we want ot move
+            //and equal amount in terms of y
+            //moveDirMax(0, -1, 0, (int) (block_distance / Math.sqrt(2)), 1000,-1,0);
+        }
+
+        {
+
+            Robot.resetTime();
+            double[] powers = motorPower.calcMotorsFull(0, -.6, 0);
+            for (int i = 0; Robot.motors.length > i; i++) {
+                //extra dist this time
+                Robot.motors[i].setTargetPosition((int) (Math.abs(powers[i])/powers[i]*(block_forward_dist+300))); //can amke this faster
+            }
+            Robot.setMotors(powers, 1);
+            ElapsedTime pantTime = new ElapsedTime();
+            while (!checkDone(3000)) { //need to check if some are done
+                Robot.setMotors(powers, 1);
+                Robot.pantagraphDown(pantTime);
+                if (most_recent_position == 2 || most_recent_position == 0) {
+                    Robot.intake(1);
+                }
+                else {
+                    Robot.intake(.7); //maybe .7 will be more relaible
+                }
+            }
+            Robot.reset_pow();
+        }
+
+
+        moveDirMax(0,1,0,(int) (block_forward_dist+(block_distance/Math.sqrt(2))-(wall_buffer+300)),4000);
+
+        //actually, we coudl turn here if we wanted to
+        turnOrient(0,1,1500,8500);//doesnt need to be that long
+        //
+        //turnOrient(0,1,2500,5500); //possibly faster
+        //I could gain a lot of time if I was turning while moving I believe
+
+        if (most_recent_position ==2) {
+            moveDirMax(0,-1,0,(int) (line_dist_from_start+ (block_distance_x/Math.sqrt(2))),3000);
+
+        }
+
+        if (most_recent_position == 0) {
+            moveDirMax(0,-1,0,(int) (line_dist_from_start- (block_distance_x/Math.sqrt(2)) ),3000);
+        }
+        else {
+            moveDirMax(0,-1,0, (line_dist_from_start ),3000);
+        }
+        moveDirMax(0,-1,0,extra_dist+(3*block_distance_x),5000,1,0);
+        //outake
         { //outtake for a second
 
             Robot.resetTime();
 
             ElapsedTime pantTime = new ElapsedTime();
-            while (pantTime.milliseconds() < 1500  ) { //one second less, since running it earlier
-                Robot.runServoDown();
-            }
-            Robot.reset_pow();
-        }
-        //should it go max speed, or should it like ramp up, or something like that?
-        moveDirMax(0,-1,0,foundation_pull,3000);
-        turnOrient(0,-1,3000,3000);
-        /*
-        { //outtake for a second
+            while (pantTime.milliseconds() < 1000  ) {
 
+
+                Robot.outtake(1);
+            }
             Robot.resetTime();
-
-            ElapsedTime pantTime = new ElapsedTime();
-            while (pantTime.milliseconds() < 1500  ) {
-
-
-                Robot.runServoUp();
-            }
             Robot.reset_pow();
         }
-        //now turn back
-        moveDirMax(0,-1,0,foundation_dist,3000); //move back, we want a ramp up here probably
-
-         */
-        //move to end position
-
-        //now move back?
-
-        //pretty sure this will be too far, but whatever
-
-        //now we need to move back to park, but we have to be carfule of the other robot
-        //NOTE: lets put a test robot on the field, or measur eout where it would be
-        //now we put the foundatoin on, so lets
-
-        //now put the thing down
-
-        //move back,this time backwards
-
-        //the we coudl outtake
-        //move forward, and point towards foundation
-        //moveDirMax(0,-1,0,foundation_dist,3000,0,-1); //push block out while we move forward
-
-        //
-        //
-        //
-
-
-
-        //now we should be at the center line
-        //from here, our job is to move to the foundation
-        //then we want to
-
-        //need a turn orient mode, where it turns itself given a certain amoutn of time, and checks if its within a certain distance
-
-
-        //reorient the robot
-        //not sure if it works to here
-
-
-        /*
-        moveOrient(0,-.7,0,0,block_forward_dist,3000,-1,1);
-
-        //move based on position
-        if (most_recent_position ==1) {
-            moveOrient(0, 1, 0, 0, block_forward_dist, 3000);
-        }
-        else if(most_recent_position==0) {
-            //this will have to be a somewhat complex calculation
-            double change_x = -block_distance/Math.sqrt(2);
-            double change_y = block_forward_dist;
-            double dist = Math.sqrt(change_x*change_x + change_y*change_y);
-            moveOrient(-change_x/dist,change_y/dist,0,0,(int)dist,4000);
-            //
-        }
-        else if(most_recent_position==2) {
-            //this will have to be a somewhat complex calculation
-            double change_x = block_distance/Math.sqrt(2); //positive on this one
-            double change_y = block_forward_dist;
-            double dist = Math.sqrt(change_x*change_x + change_y*change_y);
-            //note sure which one should be negative, but one of these should be
-            moveOrient(change_x/dist,change_y/dist,0,0,(int)dist,4000);
-            //
-        }
-        //now they should all be on the exact same spot
-        //Shoudl have skystone, and should be at move_from_wall distance from start foward
-        //Hopefully, should just take aroudn 5-6 seconds
-
-        //now, the next step is to drop off the block
-
-        moveOrient(-1,0,0,0,line_dist_from_start+line_buffer,6000); //move to the line
-
-        //now have to turn to face the foundation
-        turnOrient(0,-1,3000,3000);
-
-        moveOrient(0,-1,0,0,foundation_dist,2000,1,0); //move pantagraph up
-
-        moveOrient(0,-1,0,0,foundation_buff,1000,-1,-1); //outtake onto the foundation , move pantagraph down
-
-        moveOrient(0,1,0,0,foundation_back,1000,-1,0); //move back a little so we have extra space to turn
-        turnOrient(0,1,3000,3000); //spin into opposite direction
-        moveOrient(0,-1,0,0,foundation_back,1000); // go back to where we were, but backwards, so we can grab the foudnation
-        //now w
-
-        //now we need ot include contorl of the foundation grabber
-        //drop stone
-        //now should be oriented towards the foundation
-
-        //moveOrient(-1,0,0,0,foundation_dist,3000);
-
-        //moveOrient(1,0,0,0,line_buffer,4000,1,-1); //out take block while I move
-
-        //should end on a line
-
-        //now we should be at the line
-            //NOTE:
-            //we will want to move the panagraph up during this time
-                //actually, not for now, since it seems ot drop the block pretty often, so we will move the pantagraph up on the way down
-        //
-        */
-
-        
+        //now coudl continue
 
 
 
 
 
 
-
-        //maybe make this equal to teh game pad stuff, so we just mimic what woudl happen with game pad
 
     }
     public void recognize_block() {
@@ -557,7 +503,7 @@ public class AutoTestVuforia extends LinearOpMode {
     public void moveOrient(double vx, double vy, double rot,int rot2, int dist, int max_time) { //this probalby needs some work
 
 
-       moveOrient(vx,vy,rot,rot2,dist,max_time,0,0);
+        moveOrient(vx,vy,rot,rot2,dist,max_time,0,0);
 
     }
     public void moveDir(double vx, double vy, double rot,int dist, int max_time) {
@@ -626,7 +572,6 @@ public class AutoTestVuforia extends LinearOpMode {
             return true;
         }
         if(isStopRequested()) {
-            Robot.reset_pow();
             throw new StopException();
             //should force it to stop
             //return true;
@@ -648,8 +593,6 @@ public class AutoTestVuforia extends LinearOpMode {
     public class StopException extends RuntimeException {
         public StopException() {super();}
     }
-
-
 
 
 

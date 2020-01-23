@@ -26,8 +26,8 @@ class Skyblock {
     static final int y_size = 120/dwn_sample;
 
     //VALUES THAT WE TRUNCATE
-    static final int y_min = (int) (480 * .30); //this works better when its pretty low on the examples I have
-    static final int y_max = (int) (480*.85); //
+    static final int y_min = (int) (480 * .10); //this works better when its pretty low on the examples I have //.30 was working, goign bak to taht
+    static final int y_max = (int) (480*.55); //This oudl probably be more aggressive
     //will need to truncate on the x side to, since we cna see too many blocks right now
 
 
@@ -282,7 +282,7 @@ class Skyblock {
                 s1[0] += dist1; //yellow
                 s2[0] += dist2; //black
             }
-            else { //seoncd horiontal
+            else { //second horizontal
                 s1[1] += dist2; //black
                 s2[1] += dist1; //yellow
             }
