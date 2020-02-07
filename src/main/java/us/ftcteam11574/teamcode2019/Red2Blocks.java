@@ -7,7 +7,7 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 @Autonomous(name="Red 2 Blocks", group="Autonomous")
-public class AutoBlueBlocks extends LinearOpMode {
+public class Red2Blocks extends LinearOpMode {
 
 
 
@@ -18,14 +18,14 @@ public class AutoBlueBlocks extends LinearOpMode {
     //will want to create a trunacate mode, since we probably won't want to look along the entire y range
     final int line_buffer = 1000;
 
-    final int wall_buffer = 1900;//distance from wall after you back up, applies to all times after
+    final int wall_buffer = 2100;//distance from wall after you back up, applies to all times after
     //you have grabbed the black, hopefully will allow the robot to avoid the other robot
-    final int line_dist_from_start = 1000; //distance from start to the line under the skybridge
+    final int line_dist_from_start = 2000; //distance from start to the line under the skybridge
     final int block_distance = 1700; //Distance from the middle block to either the rigth or left block
     final int block_distance_x = 780;
     final int move_from_wall = 100; //Distance to move foward orm the wall to not be at risk to get caught on the wall
     final int block_forward_dist = 1600; //Distance to move foward while grabbing the block
-    final int extra_dist = 2350;
+    final int extra_dist = 2850;
     final int foundation_forward =2150-wall_buffer;
     final int foundation_side = 200;
     final int foundation_buff = 550; //buffer for moving it outwards
@@ -130,6 +130,7 @@ public class AutoBlueBlocks extends LinearOpMode {
         }
         //now we have intaked the block, so lets quickly move back
         //notee: still have ot accoutn for the difference in x position caused by goign for different bloccks
+
         moveDirMax(0,1,0,(int) (block_forward_dist+(block_distance/Math.sqrt(2))-wall_buffer),4000);
 
         //actually, we coudl turn here if we wanted to
@@ -137,6 +138,8 @@ public class AutoBlueBlocks extends LinearOpMode {
         //
         //turnOrient(0,1,2500,5500); //possibly faster
         //I could gain a lot of time if I was turning while moving I believe
+        Robot.resetTime();
+        Robot.reset_pow();
         if (most_recent_position ==2) {
             moveDirMax(0,-1,0,(int) (line_dist_from_start+ (block_distance_x/Math.sqrt(2))),3000);
 

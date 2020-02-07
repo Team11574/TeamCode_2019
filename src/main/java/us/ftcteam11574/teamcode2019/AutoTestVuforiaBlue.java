@@ -163,7 +163,7 @@ public class AutoTestVuforiaBlue extends LinearOpMode {
             while (pantTime.milliseconds() < 1000  ) {
 
 
-                Robot.outtake(.7);
+                Robot.outtake(.9);
                 //if(pantTime.milliseconds() < 500) {
                 Robot.runServoDown(); //is this the right amount of time?
                 //}
@@ -601,6 +601,7 @@ public class AutoTestVuforiaBlue extends LinearOpMode {
         }
         Robot.reset_pow();
         sleep(100);
+        Robot.resetTime();
     }
     public void initMode0() {
 

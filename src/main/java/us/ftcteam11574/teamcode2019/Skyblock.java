@@ -26,8 +26,8 @@ class Skyblock {
     static final int y_size = 120/dwn_sample;
 
     //VALUES THAT WE TRUNCATE
-    static final int y_min = (int) (480 * .10); //this works better when its pretty low on the examples I have //.30 was working, goign bak to taht
-    static final int y_max = (int) (480*.55); //This oudl probably be more aggressive
+    static final int y_min = (int) (480 * .23); //this works better when its pretty low on the examples I have //.30 was working, goign bak to taht
+    static final int y_max = (int) (480*.50); //This oudl probably be more aggressive
     //will need to truncate on the x side to, since we cna see too many blocks right now
 
 
@@ -160,8 +160,8 @@ class Skyblock {
 		  double top2 = skyblock.sum(skyblock.topn(info,2,topn[2])) /  Math.pow(topn[2],.85)  * 20;
 		  */
         double top0 = Skyblock.sum(info,0) / Math.pow(topn[0],.85) * 3;
-        double top1 = Skyblock.sum(info,1) /  Math.pow(topn[1],.85) * 45.5 ;
-        double top2 = Skyblock.sum(info,2) /  Math.pow(topn[2],.85)  * 20;
+        double top1 = Skyblock.sum(info,1) /  Math.pow(topn[1],.85) * 55.5 ;
+        double top2 = Skyblock.sum(info,2) /  Math.pow(topn[2],.85)  * 5;
 
 
 

@@ -91,7 +91,8 @@ public class opNoDist extends OpMode
     private boolean previous_block_state = false;
     boolean dpad_right = false;
     boolean dpad_left = false;
-
+    int pistonPos = 1;
+    double div = 1;
     public void run() {
         frame++;
         frame = frame % 100; //up to 100
@@ -100,83 +101,17 @@ public class opNoDist extends OpMode
         double vy = Robot.gamepad1.left_stick_y;
         double rot = -Robot.gamepad1.right_stick_y;
         double rot2 = Robot.gamepad1.right_stick_x;
+
         //telemetry.addData("power",Robot.power_foundation);
-        if(Robot.gamepad1.dpad_down) {
-            Robot.runServoDown();
+        buttonControl(); //do button control stuff
+        if(pistonPos == 0) {
+            Robot.pistonClose();
         }
-        else if (Robot.gamepad1.dpad_up) {
-            Robot.runServoUp();
+        if(pistonPos == 1) {
+            Robot.pistonHome();
         }
-        else {
-
-            Robot.stopServo();
-        }
-        if (Robot.gamepad1.dpad_left){
-            if ( !dpad_left ) {
-                dpad_left = true;
-                if (Robot.power_foundation <= .9) {
-                    Robot.power_foundation += .1;
-                }
-            }
-        }
-        else {
-            if (dpad_left) {
-                dpad_left = false;
-            }
-        }
-        if (Robot.gamepad1.dpad_right){
-            if ( !dpad_right ) {
-                dpad_right = true;
-                if (Robot.power_foundation >= .2) {
-                    Robot.power_foundation -= .1; //dont go all the way to zero
-                }
-            }
-        }
-        else {
-            if (dpad_right) {
-                dpad_right = false;
-            }
-        }
-
-        if (Robot.gamepad1.a){
-            if ( !a_cur ) {
-                a_cur = true;
-                max_mode = !max_mode;
-            }
-        }
-        else {
-            if (a_cur) {
-                a_cur = false;
-            }
-        }
-        if(Robot.gamepad1.b){
-            if ( !b_cur ) {
-                b_cur = true;
-                orientation_mode = !orientation_mode;
-            }
-
-        }
-        else {
-            if (b_cur) {
-                b_cur = false;
-            }
-        }
-
-        if(Robot.gamepad1.x){
-            if ( !x_cur ) {
-                x_cur = true;
-                slow_intake= !slow_intake;
-            }
-
-        }
-        else {
-            if (x_cur) {
-                x_cur = false;
-            }
-        }
-        double div = 1;
-        if (slow_intake) {
-            div = 2 ;
+        if(pistonPos == 2) {
+            Robot.pistonOpen();
         }
         //test if block already there
 
@@ -321,6 +256,91 @@ public class opNoDist extends OpMode
     }
     public class StopException extends RuntimeException {
         public StopException() {super();}
+    }
+    public void buttonControl() {
+        if (Robot.gamepad1.y) {
+            Robot.capStoneOut();
+        }
+        else {
+            Robot.capStoneStop();
+        }
+        if(Robot.gamepad1.dpad_down) {
+            Robot.runServoDown();
+        }
+        else if (Robot.gamepad1.dpad_up) {
+            Robot.runServoUp();
+        }
+        else {
+
+            Robot.stopServo();
+        }
+        if (Robot.gamepad1.dpad_left){
+            if ( !dpad_left ) {
+                dpad_left = true;
+                if(pistonPos < 2) {
+                    pistonPos += 1;
+                }
+            }
+        }
+        else {
+            if (dpad_left) {
+                dpad_left = false;
+            }
+        }
+        if (Robot.gamepad1.dpad_right){
+            if ( !dpad_right ) {
+                dpad_right = true;
+                if(pistonPos > 0) {
+                    pistonPos -= 1;
+                }
+            }
+        }
+        else {
+            if (dpad_right) {
+                dpad_right = false;
+            }
+        }
+
+        if (Robot.gamepad1.a){
+            if ( !a_cur ) {
+                a_cur = true;
+                max_mode = !max_mode;
+            }
+        }
+        else {
+            if (a_cur) {
+                a_cur = false;
+            }
+        }
+        if(Robot.gamepad1.b){
+            if ( !b_cur ) {
+                b_cur = true;
+                orientation_mode = !orientation_mode;
+            }
+
+        }
+        else {
+            if (b_cur) {
+                b_cur = false;
+            }
+        }
+
+        if(Robot.gamepad1.x){
+            if ( !x_cur ) {
+                x_cur = true;
+                slow_intake= !slow_intake;
+            }
+
+        }
+        else {
+            if (x_cur) {
+                x_cur = false;
+            }
+        }
+
+        if (slow_intake) {
+            div = 2 ;
+        }
     }
 
 

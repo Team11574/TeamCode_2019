@@ -18,7 +18,7 @@ public class Red_2_close extends LinearOpMode {
     //will want to create a trunacate mode, since we probably won't want to look along the entire y range
     final int line_buffer = 1000;
 
-    final int wall_buffer = 500;//distance from wall after you back up, applies to all times after
+    final int wall_buffer = 200;//distance from wall after you back up, applies to all times after //can make this even less
     //only a small buffer
     //you have grabbed the black, hopefully will allow the robot to avoid the other robot
     final int line_dist_from_start = 1000; //distance from start to the line under the skybridge
