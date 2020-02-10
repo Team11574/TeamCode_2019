@@ -631,7 +631,7 @@ public class Robot {
         //could make something that keeps track of position or something
         LinearOpMode extra_funcs;
         int most_recent_position =0;
-        final int wall_buffer = 1900;//distance from wall after you back up, applies to all times after
+        public int wall_buffer = 1900;//distance from wall after you back up, applies to all times after
         //was previously 500 when it worked
         //you have grabbed the black, hopefully will allow the robot to avoid the other robot
         //final int block_distance = 1700; //Distance from the middle block to either the rigth or left block
@@ -667,6 +667,60 @@ public class Robot {
             }
             telemetry.addData("time taken to calculate (millis)",System.currentTimeMillis()-start);
             telemetry.update();
+        }
+        public void grabBlockFast(int move_from_wall,int block_distance, int block_forward_dist) {
+                //untested, but should grab the block quicker than it did before, hopefully with the same degree of accuracy
+                {
+
+                    Robot.resetTime();
+                    ElapsedTime pantTime = new ElapsedTime();
+                    while (!checkDone(500)) { //need to check if some are done
+                        //Robot.setMotors(powers, 1);
+                        Robot.pantagraphDown(pantTime);
+                        //Robot.intake();
+                    }
+                    Robot.reset_pow();
+                }
+                //extra time to put pantagraph down
+                moveDirMax(0,-1,0,move_from_wall,500,-1,0);
+                if(most_recent_position == 2) { //then to the right
+                    moveDirMax(-.5,-1,0,(int)(block_distance_x/1),2000,-1,0);
+                    //moveDirMax(0,-1,0,(int) (block_distance/Math.sqrt(2)),3000,-1,0); //these don't work
+                    //maybe coudl slightly improve this, but not by much, sine its limited by the speed of the pantagraph
+
+                }
+                if(most_recent_position == 0) {
+                    moveDirMax(.6,-1,0,(int)(block_distance_x),2000,-1,0);
+
+                    //moveOrient(1,-1,0,0,block_distance,1000); //these don't work
+
+                }
+                if (most_recent_position == 1) {
+                    //the distance will have to be shorter here
+                    //need to divide by sqrt(2), since this is a 45,45,90 triangle, and we want ot move
+                    //and equal amount in terms of y
+                    moveDirMax(0, -1, 0, (int) (block_distance_x*1.3), 2000,-1,0);
+                }
+                {
+
+                    Robot.resetTime();
+                    double[] powers = motorPower.calcMotorsFull(0, -.8, 0);
+                    for (int i = 0; Robot.motors.length > i; i++) {
+                        Robot.motors[i].setTargetPosition((int) (Math.abs(powers[i])/powers[i]*block_forward_dist)); //can amke this faster
+                    }
+                    Robot.setMotors(powers, 1);
+                    ElapsedTime pantTime = new ElapsedTime();
+                    while (!checkDone(3000)) { //need to check if some are done
+                        Robot.setMotors(powers, 1);
+                        Robot.pantagraphDown(pantTime);
+                        Robot.intake(1); //maybe .7 will be more relaible
+                    }
+                    Robot.reset_pow();
+                }
+                //now we have intaked the block, so lets quickly move back
+                //notee: still have ot accoutn for the difference in x position caused by goign for different bloccks
+                moveDirMax(0,1,0,(int) (block_forward_dist+(block_distance/Math.sqrt(2))-wall_buffer),4000);
+
         }
         public void grabBlock(int move_from_wall,int block_distance, int block_forward_dist) {
             {
@@ -724,6 +778,50 @@ public class Robot {
         }
         /* MOVE TO FOUNDATION AFTER GRABBING BLOCK */
             //direction up-- 1 is left, -1 is right
+        public void moveToFoundationFast(int direction_up, int line_dist_from_start, int foundation_dist) {
+            turnOrient(-1,0,450);//doesnt need to be that long
+            //int line_dist_from_start = line_dist_from_start2 + foundation_dist;
+            if(direction_up == 1) { //consider whether the motion before added to length or subtracted
+                if (most_recent_position == 2) {
+                    telemetry.addData("info","move longer distance");
+                    telemetry.addData("info","move longer distance");
+                    telemetry.update();
+                    moveDirMax(1, 0, 0, (int) (line_dist_from_start + (block_distance_x / Math.sqrt(2))), 5000,1,0,0);
+
+                }
+
+                else if (most_recent_position == 0) {
+                    moveDirMax(1, 0, 0, (int) (line_dist_from_start - (block_distance_x / Math.sqrt(2))), 5000,1,0,0);
+                } else {
+                    moveDirMax(1, 0, 0, (line_dist_from_start), 5000,1,0,0);
+                }
+            }
+            else {
+                if (most_recent_position ==0) {
+                    moveDirMax(-1,0,0,(int) (line_dist_from_start+ (block_distance_x/Math.sqrt(2))),5000,1,0,0);
+
+                }
+
+                else if (most_recent_position == 2) {
+                    moveDirMax(-1,0,0,(int) (line_dist_from_start- (block_distance_x/Math.sqrt(2)) ),5000,1,0,0);
+                }
+                else {
+                    moveDirMax(-1,0,0, (line_dist_from_start ),5000,1,0,0);
+                }
+            }
+            turnOrient(-1,0,400); //turn to ensure direction
+            Robot.reset_pow();
+            Robot.resetTime();
+            if(direction_up == -1) {
+                moveDirMax(-1, 0, 0, foundation_dist, 5000, 1, 0);
+            }
+            else {
+                moveDirMax(1, 0, 0, foundation_dist, 5000, 1, 0);
+            }
+
+
+
+        }
         public void moveToFoundationY(int direction_up, int line_dist_from_start, int foundation_dist) {
             turnOrient(0,direction_up,1450);//doesnt need to be that long
             if(direction_up == 1) { //consider whether the motion before added to length or subtracted
@@ -761,6 +859,10 @@ public class Robot {
         public void moveBack(int orient_dir,int dist) {
             turnOrient(0,orient_dir,500);
             moveDirMax(0,1,0,dist,5000,-1,0);
+        }
+        public void moveBack2(int orient_dirx, int orient_diry,int dist) {
+            turnOrient(orient_diry,orient_dirx,500);
+            moveDirMax(1,0,0,dist,5000,-1,0);
         }
         /* MOVE TOWARDS THE FOUNDATION, FIRST QUICKLY, THEN SLOWLY*/
 
@@ -922,14 +1024,15 @@ public class Robot {
 
                 if (Math.abs(goal_rot_ang) > 0.20) { //amount goal angle needs to be off to actually turn in that direction
 
-                    nrot = goal_rot_ang * (mag_rot ); //rotation is the direction of rotation
+                    nrot = goal_rot_ang; //rotation is the direction of rotation
+                        //
                     //test value of /2.0 just ot
                     //maybe do if cur_ang + ang_turn > goal_ang then turn only goal_ang-cur_ang
                 } else {
 
                     //nrot = goal_rot_ang * (mag_rot) * (Math.abs(goal_rot_ang) + .4); //rotation is the direction of rotation
                     if (goal_rot_ang != 0) {
-                        nrot = (Math.abs(goal_rot_ang) / goal_rot_ang) * (mag_rot) * (Math.abs(goal_rot_ang) + .25);
+                        nrot = (Math.abs(goal_rot_ang) / goal_rot_ang) * (mag_rot*2.5) * (Math.abs(goal_rot_ang) + .1); //is this too fast?
                     }
                     // nrot = nrot>0?.1 + nrot:-.1+nrot;
                 }
@@ -1081,7 +1184,6 @@ public class Robot {
 
             return false;
         }
-
         public void sleep(int maxtime) { //robot sleeps for a certain amoutn of time
             ElapsedTime time = new ElapsedTime();
             while(time.milliseconds() < maxtime) {

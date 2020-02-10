@@ -6,7 +6,7 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-@Autonomous(name="Blue Foundation Park", group="Autonomous")
+@Autonomous(name="Blue Foundation Park (Testing)", group="Autonomous")
 public class BlueFoundationPark extends LinearOpMode {
 
     //I think this would work for red too
@@ -89,7 +89,7 @@ public class BlueFoundationPark extends LinearOpMode {
         }
 
 
-        auto.moveDirMax(-.75,-1,0,1500,4500,0,0,0); //need to test this to see if it works
+        auto.moveDirMax(-.75,-1,0,600,4500,0,0,0); //need to test this to see if it works
 
 
 

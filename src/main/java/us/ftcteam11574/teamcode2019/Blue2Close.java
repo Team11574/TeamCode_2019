@@ -6,8 +6,8 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-@Autonomous(name="Blue 2 Blocks", group="Autonomous")
-public class Blue2Blocks extends LinearOpMode {
+@Autonomous(name="Blue 2 Blocks Close (Testing Phase)", group="Autonomous")
+public class Blue2Close extends LinearOpMode {
 
 
 
@@ -18,15 +18,20 @@ public class Blue2Blocks extends LinearOpMode {
     //will want to create a trunacate mode, since we probably won't want to look along the entire y range
     final int line_buffer = 1000;
 
-    final int wall_buffer = 2100;//distance from wall after you back up, applies to all times after
+    final int wall_buffer = 200;//distance from wall after you back up, applies to all times after //can make this even less
+    //only a small buffer
     //you have grabbed the black, hopefully will allow the robot to avoid the other robot
-    final int line_dist_from_start = 2000; //distance from start to the line under the skybridge
+    final int line_dist_from_start = 1000; //distance from start to the line under the skybridge
     final int block_distance = 1700; //Distance from the middle block to either the rigth or left block
     final int block_distance_x = 780;
     final int move_from_wall = 100; //Distance to move foward orm the wall to not be at risk to get caught on the wall
     final int block_forward_dist = 1600; //Distance to move foward while grabbing the block
-    final int extra_dist = 1550;
-
+    final int extra_dist = 2350;
+    final int foundation_forward =2150-wall_buffer;
+    final int foundation_side = 200;
+    final int foundation_buff = 550; //buffer for moving it outwards
+    final int foundation_back = 450;
+    final int foundation_pull = 2000;
 
 
 
@@ -56,56 +61,17 @@ public class Blue2Blocks extends LinearOpMode {
         Robot.init_autoOp(telemetry, hardwareMap,gamepad1,gamepad2);
 
 
-        Robot r =new Robot();
-        Robot.AUTO auto = r.new AUTO(this);
+
         while(!isStarted()) { //needs a godo way to exit out of the loop
             //read the camera, and store the position, increase the confidence rating based ont eh consitancy of readings
-            auto.recognize_block();
+            recognize_block();
 
 
 
         }
-        Robot.resetTime();
-        Robot.reset_pow();
-        telemetry.addData("pos guess",auto.most_recent_position);
+        telemetry.addData("pos guess",most_recent_position);
         telemetry.update();
 
-        //DOESN't WORK WITH POS 2 FOR SOME REASON
-        //UNTESTED
-
-        auto.grabBlock(move_from_wall,block_distance,block_forward_dist);
-        auto.moveToFoundationY(1,line_dist_from_start,extra_dist);
-        auto.outtakeBlock(1000);
-        auto.moveBack(1,(int) (line_dist_from_start + extra_dist+block_distance_x*3) );
-        auto.turnOrient(-1,0,1000); //orient back towards blocks
-        //auto.moveDirMax(0,1,0,(int) (block_forward_dist/Math.sqrt(2)),1000,0,0,0);
-        //auto.grabBlock(move_from_wall,block_distance,block_forward_dist);
-        {
-
-            Robot.resetTime();
-            double[] powers = motorPower.calcMotorsFull(0, -.8, 0);
-            for (int i = 0; Robot.motors.length > i; i++) {
-                Robot.motors[i].setTargetPosition((int) (Math.abs(powers[i])/powers[i]*block_forward_dist)); //can amke this faster
-            }
-            Robot.setMotors(powers, 1);
-            ElapsedTime pantTime = new ElapsedTime();
-            while (!checkDone(3000)) { //need to check if some are done
-                Robot.setMotors(powers, 1);
-                Robot.pantagraphDown(pantTime);
-                Robot.intake(1); //maybe .7 will be more relaible
-            }
-            Robot.reset_pow();
-        }
-        //move back after this
-        moveDirMax(0,1,0,(int) (block_forward_dist+(block_distance/Math.sqrt(2))-wall_buffer),4000);
-        auto.moveToFoundationY(1,(int) (line_dist_from_start+block_distance_x*4.3),extra_dist);
-        //maybe each of these should check if there is enough time remaining to complete this task
-        auto.outtakeBlock(1000);
-        //move block
-        //outtake block
-
-
-        /*
         {
 
             Robot.resetTime();
@@ -168,7 +134,7 @@ public class Blue2Blocks extends LinearOpMode {
         moveDirMax(0,1,0,(int) (block_forward_dist+(block_distance/Math.sqrt(2))-wall_buffer),4000);
 
         //actually, we coudl turn here if we wanted to
-        turnOrient(0,1,1500,8500);//doesnt need to be that long
+        turnOrient(0,-1,1500,8500);//doesnt need to be that long
         //
         //turnOrient(0,1,2500,5500); //possibly faster
         //I could gain a lot of time if I was turning while moving I believe
@@ -183,8 +149,9 @@ public class Blue2Blocks extends LinearOpMode {
         else {
             moveDirMax(0,-1,0, (line_dist_from_start ),3000);
         }
-        turnOrient(0,1,500,3500);//doesnt need to be that long
+
         //now we are at the line, now we want to be able ot place the block, should be pointed
+        turnOrient(0,-1,1000,3500);//doesnt need to be that long
         moveDirMax(0,-1,0,extra_dist,5000,1,0);
         { //outtake for a second
 
@@ -199,10 +166,10 @@ public class Blue2Blocks extends LinearOpMode {
             Robot.resetTime();
             Robot.reset_pow();
         }
-        turnOrient(0,1,500,5000);
+        turnOrient(0,-1,500,5000);
         moveDirMax(0,1,0,extra_dist+line_dist_from_start+ ((int) (4.3*block_distance_x/Math.sqrt(2)) ),5000,-1,0);
         //subtract some fi needed to make this faster
-        turnOrient(-1,0,1500,5000);
+        turnOrient(-1,0,2000,5000);
         //gamepady is negative off??
 
         //now back at starting point, except a couple blocks over, could run same code with just an extra line or two
@@ -253,7 +220,7 @@ public class Blue2Blocks extends LinearOpMode {
         moveDirMax(0,1,0,(int) (block_forward_dist+(block_distance/Math.sqrt(2))-(wall_buffer+300)),4000);
 
         //actually, we coudl turn here if we wanted to
-        turnOrient(0,1,1000,8500);//doesnt need to be that long
+        turnOrient(0,-1,1500,8500);//doesnt need to be that long
         //
         //turnOrient(0,1,2500,5500); //possibly faster
         //I could gain a lot of time if I was turning while moving I believe
@@ -285,7 +252,7 @@ public class Blue2Blocks extends LinearOpMode {
             Robot.reset_pow();
         }
         //now coudl continue
-*/
+
 
 
 

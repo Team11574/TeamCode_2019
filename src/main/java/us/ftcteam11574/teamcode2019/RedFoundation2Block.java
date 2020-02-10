@@ -6,8 +6,8 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-@Autonomous(name="Blue Foundation 2 Block", group="Autonomous")
-public class BlueFoundation2Block extends LinearOpMode {
+@Autonomous(name="Red Foundation 2 Block (TESTING)", group="Autonomous")
+public class RedFoundation2Block extends LinearOpMode {
 
 
 
@@ -61,7 +61,7 @@ public class BlueFoundation2Block extends LinearOpMode {
 
         //move down for a bit longer
         //auto.moveDirMax(0,1,0,foundation_dist,3000,0,0,-1); //move servo down and move towards foundation
-        auto.moveDirMax(-.2,1,0,foundation_dist,3000,0,0,-1); //move servo down and move towards foundation
+        auto.moveDirMax(.2,1,0,foundation_dist,3000,0,0,-1); //move servo down and move towards foundation
         //auto.moveDirMax(1,0,0,400,500,0,0,-.6);
 
         auto.moveDir(0,.5,0,foundation_buff,3000,0,0,-1); //move
@@ -76,11 +76,12 @@ public class BlueFoundation2Block extends LinearOpMode {
             Robot.reset_pow();
         }
         auto.moveDirMax(0,-1,0,foundation_dist,3000);
-        auto.turnOrient(0,1,3000,0,0,.40); //
+        auto.turnOrient(0,-1,3000,0,0,.30);
         auto.moveDirMax(0,-1,0,foundation_pull,2000,-1,0,1);
         //auto.moveDirMax(side_dir,0,0,side_dist,1000,-1,0,1); //move to side, perfer to move towards wall side
         //coudl either grab random blocks or actually try to recognize the correct blocks
-        auto.moveDirMax(-.55,-1,0,3000,4500,-1,0,1);
+        auto.turnOrient(0,-1,600,0,0,.30); //
+        auto.moveDirMax(.41,-1,0,2550,4500,-1,0,1);
         Robot.resetTime();
         auto.turnOrient(1,0,2500); //turn towards blocks
         //now we want to recognize, then move diagonally
