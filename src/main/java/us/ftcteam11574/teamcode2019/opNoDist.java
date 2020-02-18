@@ -148,6 +148,7 @@ public class opNoDist extends OpMode
         Robot.telemetry.addData("Orietnation_mode on?:", orientation_mode);
         Robot.telemetry.addData("test_mode on?:", slow_intake);
         Robot.telemetry.addData("Max_mode on?:", max_mode);
+        Robot.telemetry.addData("block info",Robot.isBlock());
         if(!orientation_mode) {
 
             Robot.setMotors(-vx,vy,rot2*1.5,max_mode); //maybe I can edit how strong the turn factor is with another variable
@@ -339,7 +340,10 @@ public class opNoDist extends OpMode
         }
 
         if (slow_intake) {
-            div = 2 ;
+            div = 2.4 ;
+        }
+        else {
+            div = 1;
         }
     }
 

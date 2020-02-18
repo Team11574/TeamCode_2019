@@ -63,7 +63,7 @@ public class BlueBlockFoundation extends LinearOpMode {
 
         Robot r =new Robot();
         Robot.AUTO auto = r.new AUTO(this);
-
+        Robot.pistonHome();
 
 
         while(!isStarted()) { //needs a godo way to exit out of the loop
@@ -76,9 +76,12 @@ public class BlueBlockFoundation extends LinearOpMode {
         most_recent_position = auto.most_recent_position; //because this isn't going to have its most_recent_position updated, only auto will, since it it using the camera
         telemetry.addData("pos guess",most_recent_position);
         telemetry.update();
-        auto.grabBlock(100,1700,1600);
+
+        auto.grabBlockFastColor(100,1700,1600); //grab block quickly
         placeFoundation();
         moveFoundation();
+        //woudl need to test the last part
+
     }
     public void recognize_block() {
         long start = System.currentTimeMillis();

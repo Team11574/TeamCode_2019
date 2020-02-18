@@ -5,7 +5,7 @@ import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.util.ElapsedTime;
-
+@Disabled
 @Autonomous(name="Red Foundation 2 Block (TESTING)", group="Autonomous")
 public class RedFoundation2Block extends LinearOpMode {
 

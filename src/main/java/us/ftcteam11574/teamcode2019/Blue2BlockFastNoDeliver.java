@@ -65,8 +65,8 @@ public class Blue2BlockFastNoDeliver extends LinearOpMode {
 
 
         }
-
-        auto.grabBlockFast(move_from_wall,block_distance,block_forward_dist);
+        auto.start();
+        auto.grabBlockFastColor(move_from_wall,block_distance,block_forward_dist);
         //auto.turnOrient(-1,0,500,0,0,0);
         auto.moveToFoundationFast(1, (line_dist_from_start), (extra_dist) );
         //auto.moveToFoundationY(-1,line_dist_from_start,extra_dist);
@@ -77,42 +77,70 @@ public class Blue2BlockFastNoDeliver extends LinearOpMode {
 
 
             ElapsedTime pantTime = new ElapsedTime();
-            while (pantTime.milliseconds() < 600) { //need to check if some are done
+            while (pantTime.milliseconds() < 800) { //need to check if some are done
 
                 //Robot.pantagraphDown(pantTime);
                 Robot.outtake(1); //maybe .7 will be more relaible
             }
             Robot.reset_pow();
         }
-        auto.turnOrient(-1,0,400); //turn to ensure direction
+        auto.turnOrient(-1,0,800); //turn to ensure direction
+
+        //------
         if (auto.most_recent_position == 2) {
-            auto.moveDirMax(-1,0,0,(int) (line_dist_from_start+(6*block_distance_x/Math.sqrt(2)) -700),4000,0,0,0);
+            //special case, need to change heading afteer this
+
+            auto.moveDirMax(1,0,0,(int) (line_dist_from_start+(4*block_distance_x/Math.sqrt(2)) -1100),4000,0,0,0);
         }
         else {
-            auto.moveDirMax(-1, 0, 0, (int) (line_dist_from_start + (4 * block_distance_x / Math.sqrt(2)) - 700), 4000, 0, 0, 0);
+            auto.moveDirMax(1, 0, 0, (int) (line_dist_from_start + (4 * block_distance_x / Math.sqrt(2)) - 1100), 4000, 0, 0, 0);
         }
-        auto.turnOrient(-1,0,400); //turn to ensure direction
-        auto.moveDirMax(-1,.4,0,(int) (extra_dist*.9 - 400),4000,-.2,0,0);
-        auto.turnOrient(-1,0,400,-1,0,0); //turn to ensure direction
-        auto.moveDirMax(0,-1,0,(int) (850),4000,-1,0,0);
-        {
+        auto.turnOrient(-1,0,800); //turn to ensure direction
+        auto.moveDirMax(-1,.4,0,(int) (extra_dist*.9 - 400),4000,-.4,0,0);
+        if (auto.most_recent_position == 2) {
+            auto.turnOrient(-1, -.6, 800, -1, 0, 0); //turn to a special heading
+            auto.moveDirMax(0, -1, 0, (int) (850), 4000, -1, 0, 0);
+            boolean grabbedBlock = false;
+            double distance_traveled = 0;
+            double average_motor_len = 0;
+            {
 
-            Robot.resetTime();
-            double[] powers = motorPower.calcMotorsFull(0, -.8, 0);
-            for (int i = 0; Robot.motors.length > i; i++) {
-                Robot.motors[i].setTargetPosition((int) (Math.abs(powers[i])/powers[i]*block_forward_dist)); //can amke this faster
-            }
-            Robot.setMotors(powers, 1);
-            ElapsedTime pantTime = new ElapsedTime();
-            while (pantTime.milliseconds()<3000) { //need to check if some are done
+                Robot.resetTime();
+                double[] powers = motorPower.calcMotorsFull(0, -.8, 0);
+                for (int i = 0; Robot.motors.length > i; i++) {
+                    Robot.motors[i].setTargetPosition((int) (Math.abs(powers[i])/powers[i]*block_forward_dist)); //can amke this faster
+                }
                 Robot.setMotors(powers, 1);
-                Robot.pantagraphDown(pantTime);
-                Robot.intake(1); //maybe .7 will be more relaible
+                ElapsedTime pantTime = new ElapsedTime();
+                while (pantTime.milliseconds()<3000 && !grabbedBlock) { //need to check if some are done
+                    Robot.setMotors(powers, 1);
+                    Robot.pantagraphDown(pantTime);
+                    Robot.intake(1); //maybe .7 will be more relaible
+                    grabbedBlock = Robot.isBlock();
+                }
+                Robot.reset_pow();
             }
-            Robot.reset_pow();
+
+            for (int i = 0; Robot.motors.length > i; i++) {
+                average_motor_len += Math.abs(Robot.motors[i].getCurrentPosition());
+                //since we travelled forward, we can just move that part backwards
+            }
+            average_motor_len /= 4.;
+            auto.moveDirMax(0,1,0,(int) (average_motor_len+(int)( block_distance_x/Math.sqrt(2))-auto.wall_buffer),4000);
+            auto.turnOrient(-1,0,450,0,0,0);//doesnt need to be that long, actually, wait until second step
+            //a little extra orientation time
         }
-        auto.moveDirMax(0,1,0,block_forward_dist-300,2000,1,0,0);
+        else {
+            auto.turnOrient(-1, 0, 500, -1, 0, 0); //turn to ensure direction
+            auto.moveDirMax(0, -1, 0, (int) (850), 4000, -1, 0, 0);
+            auto.intakeBlockColor(block_forward_dist,3000,(int)( block_distance_x/Math.sqrt(2)) );
+        }
+
+
+
+
         auto.moveToFoundationFast(1, (line_dist_from_start)+block_distance_x*3, (extra_dist) );
+
         {
 
             Robot.resetTime();
@@ -120,13 +148,14 @@ public class Blue2BlockFastNoDeliver extends LinearOpMode {
 
 
             ElapsedTime pantTime = new ElapsedTime();
-            while (pantTime.milliseconds() < 600) { //need to check if some are done
+            while (pantTime.milliseconds() < 600 && !auto.timePast()) { //need to check if some are done
 
                 //Robot.pantagraphDown(pantTime);
                 Robot.outtake(1); //maybe .7 will be more relaible
             }
             Robot.reset_pow();
         }
+        auto.moveDirMax(-1,0,0,1000,5000,0,0,0);
         //might be able to place
         //
 

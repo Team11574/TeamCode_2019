@@ -7,7 +7,7 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 @Autonomous(name="Red Block Foundation", group="Autonomous")
-public class AutoTestVuforiaBlue extends LinearOpMode {
+public class RedBlockFoundation extends LinearOpMode {
 
 
 
@@ -21,17 +21,17 @@ public class AutoTestVuforiaBlue extends LinearOpMode {
     final int wall_buffer = 2100;//distance from wall after you back up, applies to all times after
     //was previously 500 when it worked
     //you have grabbed the black, hopefully will allow the robot to avoid the other robot
-    final int line_dist_from_start = 1000; //distance from start to the line under the skybridge
+    final int line_dist_from_start = 1200; //distance from start to the line under the skybridge
     final int block_distance = 1700; //Distance from the middle block to either the rigth or left block
     final int block_distance_x = 780; //this needs to be different on both sides
     final int move_from_wall = 100; //Distance to move foward orm the wall to not be at risk to get caught on the wall
     final int block_forward_dist = 1600; //Distance to move foward while grabbing the block
-    final int foundation_dist = 5350;
+    final int foundation_dist = 4850;
     final int foundation_forward =2750-wall_buffer;
     final int foundation_side = 200;
-    final int foundation_buff = 550; //buffer for moving it outwards
+    final int foundation_buff = 850; //buffer for moving it outwards
     final int foundation_back = 450;
-    final int foundation_pull = 2300;
+    final int foundation_pull = 3000;
 
 
 
@@ -61,8 +61,10 @@ public class AutoTestVuforiaBlue extends LinearOpMode {
         //Intended start: TBD
         Robot.init_autoOp(telemetry, hardwareMap,gamepad1,gamepad2);
 
-
-
+        Robot.pistonHome();
+        Robot r = new Robot();
+        Robot.AUTO auto = r.new AUTO(this);
+        auto.wall_buffer = 1780; //will be much closer
         while(!isStarted()) { //needs a godo way to exit out of the loop
             //read the camera, and store the position, increase the confidence rating based ont eh consitancy of readings
             recognize_block();
@@ -70,126 +72,91 @@ public class AutoTestVuforiaBlue extends LinearOpMode {
 
 
         }
+        auto.start(); //still need to check if these are correct
+        auto.most_recent_position = most_recent_position;
+
         telemetry.addData("pos guess",most_recent_position);
         telemetry.update();
 
-        {
+        auto.grabBlockFastColor(move_from_wall,block_distance,block_forward_dist);
+        //moveDirMax(0,1,0,(int) (block_forward_dist+(block_distance/Math.sqrt(2))-wall_buffer),4000);
 
-            Robot.resetTime();
-            ElapsedTime pantTime = new ElapsedTime();
-            while (!checkDone(500)) { //need to check if some are done
-                //Robot.setMotors(powers, 1);
-                Robot.pantagraphDown(pantTime);
-                //Robot.intake();
-            }
-            Robot.reset_pow();
-        }
-
-
-
-        //extra time to move the pantagraph down
-        moveDirMax(0,-1,0,move_from_wall,500,-1,0);
-        if(most_recent_position == 2) { //then to the right
-            moveDirMax(-1,0,0,(int) (block_distance_x/Math.sqrt(2)),2000,-1,0); //-100 cause farther to the right
-            moveDirMax(0,-1,0,(int) (block_distance/Math.sqrt(2)),3000,-1,0); //these don't work
-            //maybe coudl slightly improve this, but not by much, sine its limited by the speed of the pantagraph
-
-        }
-        if(most_recent_position == 0) {
-            moveDirMax(1,0,0,(int) (block_distance_x/Math.sqrt(2))-150,2000,-1,0);
-            moveDirMax(0,-1,0,(int) (block_distance/Math.sqrt(2)),3000,-1,0);
-            //moveOrient(1,-1,0,0,block_distance,1000); //these don't work
-
-        }
-        if (most_recent_position == 1) {
-            //the distance will have to be shorter here
-            //need to divide by sqrt(2), since this is a 45,45,90 triangle, and we want ot move
-            //and equal amount in terms of y
-            moveDirMax(0, -1, 0, (int) (block_distance / Math.sqrt(2)), 1000,-1,0);
-        }
-
-
-        {
-
-            Robot.resetTime();
-            double[] powers = motorPower.calcMotorsFull(0, -.6, 0);
-            for (int i = 0; Robot.motors.length > i; i++) {
-                Robot.motors[i].setTargetPosition((int) (Math.abs(powers[i])/powers[i]*block_forward_dist)); //can amke this faster
-            }
-            Robot.setMotors(powers, 1);
-            ElapsedTime pantTime = new ElapsedTime();
-            while (!checkDone(3000)) { //need to check if some are done
-                Robot.setMotors(powers, 1);
-                Robot.pantagraphDown(pantTime);
-                Robot.intake(.85); //maybe .7 will be more relaible
-            }
-            Robot.reset_pow();
-        }
-        //now we have intaked the block, so lets quickly move back
-        //notee: still have ot accoutn for the difference in x position caused by goign for different bloccks
-        moveDirMax(0,1,0,(int) (block_forward_dist+(block_distance/Math.sqrt(2))-wall_buffer),4000);
-
+        int extra_dist = (2-most_recent_position) * 600;
         //actually, we coudl turn here if we wanted to
-        turnOrient(0,-1,3000,7500);//doesnt need to be that long
+        auto.turnOrient(0,-1,800);//doesnt need to be that long
         //turnOrient(0,1,2500,5500); //possibly faster
         //I could gain a lot of time if I was turning while moving I believe
-        if (most_recent_position ==0) {
-            moveDirMax(0,-1,0,(int) (line_dist_from_start+ (block_distance_x/Math.sqrt(2))),2000);
 
+        moveDirMax(0,-1,0, (line_dist_from_start ),2000);
+        //only if directoin is off by a certan amount
+        double imu_ang = (Robot.imu.getAngularOrientation().firstAngle + 0 * Math.PI / 2.0) % Math.PI;
+        double ang_rot = Math.atan2(0, -1) - Math.PI / 2.0; //angle your game stick is facing
+
+        double goal_rot_ang = Robot.distanceTurn(-imu_ang, ang_rot); //
+        auto.turnOrient(0, -1, 800);//doesnt need to be that long
+            //otherwise, skip this part
+
+        //now we are at the line, now we want to be able ot place the block, should be pointed
+        if (auto.most_recent_position == 0) {
+            auto.moveDirMax(0,-1,0,foundation_dist+1200,5000,1,0);
         }
-
-        if (most_recent_position == 2) {
-            moveDirMax(0,-1,0,(int) (line_dist_from_start- (block_distance_x/Math.sqrt(2)) ),2000);
+        else if(auto.most_recent_position == 1 ) {
+            auto.moveDirMax(0,-1,0,foundation_dist+800,5000,1,0);
         }
         else {
-            moveDirMax(0,-1,0, (line_dist_from_start ),2000);
+            auto.moveDirMax(0,-1,0,foundation_dist,5000,1,0);
         }
-        turnOrient(0,-1,1500,3500);//doesnt need to be that long
-        //now we are at the line, now we want to be able ot place the block, should be pointed
-        moveDirMax(0,-1,0,foundation_dist,5000,1,0);
-        turnOrient(-1,0,1500,3500);
-        //turnOrient(-1,0,500,3500);
-        //turnOrient(-1,0,1500,3500); //could probably save time here
-        //move back a bit to reposition
-        //moveDir(0,.8,0,600,1500); //repositioning phase //skip this for now
-        moveDirMax(0,-1,0,foundation_forward-500,3000); //move towards foundation //maybe a little less
-        //moveDirMax(0,-1,0,foundation_buff,3000,0,-1);
-        moveDir(0,-.5,0,500,1000); // a little bit more on the slow side, to ensur eit doesn't push it too much
+
+        auto.turnOrient(-1,0,1000,0,0,0); //make this go a little faster
+        Robot.resetTime();
+        Robot.reset_pow();
+        auto.moveDir(0,-.75,0,1000,1000,0,0,0); // a little bit more on the slow side, to ensur eit doesn't push it too much
         { //outtake for a second
 
             Robot.resetTime();
 
             ElapsedTime pantTime = new ElapsedTime();
-            while (pantTime.milliseconds() < 1000  ) {
+            while (pantTime.milliseconds() < 700  ) {
 
 
-                Robot.outtake(.9);
+                Robot.outtake(1);
+
                 //if(pantTime.milliseconds() < 500) {
-                Robot.runServoDown(); //is this the right amount of time?
+                Robot.runServo(-1); //is this the right amount of time?, a little less just to ensure it works
+                //maximum speed
+                //increasing this to make the other part faster
                 //}
             }
             Robot.resetTime();
             Robot.reset_pow();
         }
-        moveDirMax(0,1,0,foundation_back,3000);
-        turnOrient(1,0,2000,4500);
+        auto.moveDirMax(0,1,0,foundation_back,3000);
+        auto.turnOrient(1,0,1400,0,0,0);
         //moveDirMax(1,0,0,foundation_side,3000); //not sure if this is in the right direction
         //moveDirMax(1,0,0,2000,3000); //2000?
-
-        moveDir(0,.5,0,foundation_back+foundation_buff,3000);
+        Robot.resetTime();
+        Robot.resetTime(); //not sure whats going on here
+        auto.moveDir(0,.75,0,foundation_back+foundation_buff,4500,0,0,0);
+        //this doesn't seem to work?
+        //not exactly sure wha tto do here,
         { //outtake for a second
 
             Robot.resetTime();
 
             ElapsedTime pantTime = new ElapsedTime();
-            while (pantTime.milliseconds() < 1500  ) { //one second less, since running it earlier
+            while (pantTime.milliseconds() < 1400  ) { //one second less, since running it earlier
                 Robot.runServoDown();
             }
             Robot.reset_pow();
         }
+        telemetry.addData("runtime",auto.extra_funcs.getRuntime());
+        telemetry.update();
         //should it go max speed, or should it like ramp up, or something like that?
         moveDirMax(0,-1,0,foundation_pull,3000);
-        turnOrient(0,1,2000,3000);
+        auto.turnOrient(0,1,3000,0,0,.3);
+        auto.moveDirMax(-.3,-1,0,2500,3000,0,0,1); //this line needs testing
+        //need a bit of a strafe to ensure it gets into the corner
+
         /*
         { //outtake for a second
 

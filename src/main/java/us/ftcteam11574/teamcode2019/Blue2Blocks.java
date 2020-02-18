@@ -5,7 +5,7 @@ import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.util.ElapsedTime;
-
+@Disabled
 @Autonomous(name="Blue 2 Blocks", group="Autonomous")
 public class Blue2Blocks extends LinearOpMode {
 

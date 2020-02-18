@@ -11,6 +11,7 @@ import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
+import com.qualcomm.robotcore.hardware.ColorSensor;
 import com.vuforia.Image;
 import com.vuforia.PIXEL_FORMAT;
 import com.vuforia.Vuforia;
@@ -33,7 +34,7 @@ public class Robot {
     public static DcMotor pantagraph = null;
     public static BNO055IMU imu;
     public static DcMotor[] motors; //all motors
-    //public static ColorSensor mColorSensor; //too much lag for now
+    public static ColorSensor mColorSensor; //too much lag for now
     public static Rev2mDistanceSensor mDistanceSensor;
     public static Telemetry telemetry;
     public static HardwareMap hardwareMap;
@@ -52,6 +53,8 @@ public class Robot {
     public static final float open = .55f;
     public static final float close = .3f;
     public static final float eps = .01f;
+    public static double alpha1 = 50;
+    public static double alphaMult = 1.5;
     // /* Camera ^^
 
 
@@ -127,7 +130,7 @@ public class Robot {
 
 
         //*/
-        //mColorSensor = hardwareMap.colorSensor.get("color"); //I think its causing too much lag
+        mColorSensor = hardwareMap.colorSensor.get("color"); //I think its causing too much lag
 
         /*  ***CAMERA***
          //Wait until we get it to find the camera before trying to get this to work
@@ -552,14 +555,16 @@ public class Robot {
         //maybe see hwo alpha values get returned, and also put those in
         */
         //dist < 70 ||
+        /*
         if (  mDistanceSensor.getDistance(DistanceUnit.MM) < 60) { //increasing this number will increase the sensitivity
 
 
             return true;
 
         }
-        /*
-        telemetry.addData("dist from color", dist);
+        */
+
+/*
         telemetry.addData("color",
                 String.format("r:%d, g:%d, b:%d, a:%d",
                         mColorSensor.red(),
@@ -567,10 +572,14 @@ public class Robot {
                         mColorSensor.blue(),
                         mColorSensor.alpha()));
 
-         */
+ */
 
-        telemetry.addData("distance (mm)", mDistanceSensor.getDistance(DistanceUnit.MM));
-        telemetry.update();
+         if(mColorSensor.alpha() > alpha1*alphaMult) {
+             return true;
+         }
+
+
+        //telemetry.update();
 
         return false;
 
@@ -641,6 +650,8 @@ public class Robot {
         //final int foundation_dist = 5350;
         final int[][] ranges = { {0,640/3}, {640/3,(2*640)/3}, {(2*640)/3,640}}; //just some test values, will need to see what it looks like to determine these values
         /* Recognizes block using the camera, returns the result by chaning the value of most_recent_position */
+        boolean can_use_time = false;
+        //coudl make a move with reajust, which moves and only reajusts if angl eis off by enough
         public void recognize_block() {
 
             long start = System.currentTimeMillis();
@@ -667,6 +678,87 @@ public class Robot {
             }
             telemetry.addData("time taken to calculate (millis)",System.currentTimeMillis()-start);
             telemetry.update();
+        }
+        public void start() {
+            extra_funcs.resetStartTime();
+            can_use_time = true;
+            alpha1 = mColorSensor.alpha();//starting alpha value
+            //nay other stuff has to do on start
+        }
+        public void grabBlockFastColor(int move_from_wall,int block_distance, int block_forward_dist) {
+
+            {
+
+                Robot.resetTime();
+                ElapsedTime pantTime = new ElapsedTime();
+                while (!checkDone(500)) { //need to check if some are done
+                    //Robot.setMotors(powers, 1);
+                    Robot.pantagraphDown(pantTime);
+                    //Robot.intake();
+                }
+                Robot.reset_pow();
+            }
+            //extra time to put pantagraph down
+            moveDirMax(0,-1,0,move_from_wall,500,-1,0);
+            if(most_recent_position == 2) { //then to the right
+                moveDirMax(-.5,-1,0,(int)(block_distance_x/1),2000,-1,0);
+                //moveDirMax(0,-1,0,(int) (block_distance/Math.sqrt(2)),3000,-1,0); //these don't work
+                //maybe coudl slightly improve this, but not by much, sine its limited by the speed of the pantagraph
+
+            }
+            if(most_recent_position == 0) {
+                moveDirMax(.6,-1,0,(int)(block_distance_x),2000,-1,0);
+
+                //moveOrient(1,-1,0,0,block_distance,1000); //these don't work
+
+            }
+            if (most_recent_position == 1) {
+                //the distance will have to be shorter here
+                //need to divide by sqrt(2), since this is a 45,45,90 triangle, and we want ot move
+                //and equal amount in terms of y
+                moveDirMax(0, -1, 0, (int) (block_distance_x*1.3), 2000,-1,0);
+            }
+
+            this.intakeBlockColor(block_forward_dist,3000,(int) (block_distance/Math.sqrt(2)) );
+
+
+
+
+        }
+        public void intakeBlockColor(double max_dist, int max_time, int extra_back) {
+            double average_motor_len =0;
+            {
+
+                Robot.resetTime();
+                double[] powers = motorPower.calcMotorsFull(0, -.8, 0);
+                for (int i = 0; Robot.motors.length > i; i++) {
+                    Robot.motors[i].setTargetPosition((int) (Math.abs(powers[i])/powers[i]*max_dist)); //can amke this faster
+                }
+                Robot.setMotors(powers, 1);
+                ElapsedTime pantTime = new ElapsedTime();
+                boolean grabbedBlock = false;
+                double distance_traveled = 0;
+                while (!checkDone(max_time) && !grabbedBlock) { //need to check if some are done
+                    Robot.setMotors(powers, 1);
+                    Robot.pantagraphDown(pantTime);
+                    Robot.intake(1); //maybe .7 will be more relaible
+                    grabbedBlock = Robot.isBlock();
+                }
+                for (int i = 0; motors.length > i; i++) {
+                    average_motor_len += Math.abs(motors[i].getCurrentPosition());
+                    //since we travelled forward, we can just move that part backwards
+                }
+                average_motor_len /= 4.;
+                telemetry.addData("motor len" ,average_motor_len);
+                telemetry.update();
+
+            }
+            Robot.resetTime();
+            Robot.reset_pow();
+            //telemetry.addData()
+            //now we have intaked the block, so lets quickly move back
+            //notee: still have ot accoutn for the difference in x position caused by goign for different bloccks
+            moveDirMax(0,1,0,(int) (average_motor_len+extra_back-wall_buffer),4000);
         }
         public void grabBlockFast(int move_from_wall,int block_distance, int block_forward_dist) {
                 //untested, but should grab the block quicker than it did before, hopefully with the same degree of accuracy
@@ -714,6 +806,9 @@ public class Robot {
                         Robot.setMotors(powers, 1);
                         Robot.pantagraphDown(pantTime);
                         Robot.intake(1); //maybe .7 will be more relaible
+                        telemetry.addData("Has grabbed block?",Robot.isBlock());
+                        telemetry.update();
+
                     }
                     Robot.reset_pow();
                 }
@@ -779,7 +874,7 @@ public class Robot {
         /* MOVE TO FOUNDATION AFTER GRABBING BLOCK */
             //direction up-- 1 is left, -1 is right
         public void moveToFoundationFast(int direction_up, int line_dist_from_start, int foundation_dist) {
-            turnOrient(-1,0,450);//doesnt need to be that long
+            turnOrient(-1,0,450,0,0,0);//doesnt need to be that long, actually, wait until second step
             //int line_dist_from_start = line_dist_from_start2 + foundation_dist;
             if(direction_up == 1) { //consider whether the motion before added to length or subtracted
                 if (most_recent_position == 2) {
@@ -812,6 +907,8 @@ public class Robot {
             turnOrient(-1,0,400); //turn to ensure direction
             Robot.reset_pow();
             Robot.resetTime();
+
+
             if(direction_up == -1) {
                 moveDirMax(-1, 0, 0, foundation_dist, 5000, 1, 0);
             }
@@ -1100,6 +1197,7 @@ public class Robot {
 
         }
         //NOTE, NEGATIVE FOR Y IS FORWARD!
+        //negative x is to the right also
         public void moveDir(double vx, double vy, double rot,int dist, int max_time) {
 
             moveDir(vx,vy,  rot, dist, max_time,0,0,0);
@@ -1123,7 +1221,6 @@ public class Robot {
                 Robot.runServo(servo_power);
             }
             Robot.reset_pow();
-            sleep(100);
             Robot.resetTime();
 
         }
@@ -1158,15 +1255,36 @@ public class Robot {
             sleep(100);
             Robot.resetTime();
         }
+        public boolean timePast() {
+            if(can_use_time && extra_funcs.getRuntime() > 29.5 ) { //only run thorugh this if time has properly been intialized
+
+                Robot.reset_pow(); //time to stop
+                return true;
+            }
+            return false;
+        }
+
         public boolean checkDone(int maxTime) { //true if done
             //return true when done
             if (Robot.timeElapsed() > maxTime ) { //max amount of time alloted
                 telemetry.addData("out of time","time ran out");
                 return true;
             }
+            //if we try this, need to reset the time everytime it starts
+
+            if(can_use_time && extra_funcs.getRuntime() > 29.5 ) { //only run thorugh this if time has properly been intialized
+
+                Robot.reset_pow(); //time to stop
+                return true;
+            }
+
+
             if(extra_funcs.isStopRequested()) {
                 Robot.reset_pow();
                 throw new StopException();
+                //return true;
+                //testing what happens if I return true instaed
+                //throw new StopException();
                 //should force it to stop
                 //return true;
             }

@@ -1,10 +1,11 @@
 package us.ftcteam11574.teamcode2019;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.util.ElapsedTime;
-
+@Disabled
 @Autonomous(name="AutoModeLeftRed", group="Autonomous")
 public class AutoModeRed extends LinearOpMode {
 
