@@ -26,12 +26,12 @@ public class RedBlockFoundation extends LinearOpMode {
     final int block_distance_x = 780; //this needs to be different on both sides
     final int move_from_wall = 100; //Distance to move foward orm the wall to not be at risk to get caught on the wall
     final int block_forward_dist = 1600; //Distance to move foward while grabbing the block
-    final int foundation_dist = 4850;
+    final int foundation_dist = 4450;
     final int foundation_forward =2750-wall_buffer;
     final int foundation_side = 200;
     final int foundation_buff = 850; //buffer for moving it outwards
     final int foundation_back = 450;
-    final int foundation_pull = 3000;
+    final int foundation_pull = 3600;
 
 
 
@@ -64,21 +64,19 @@ public class RedBlockFoundation extends LinearOpMode {
         Robot.pistonHome();
         Robot r = new Robot();
         Robot.AUTO auto = r.new AUTO(this);
-        auto.wall_buffer = 1780; //will be much closer
+        auto.wall_buffer = 1800; //will be much closer
         while(!isStarted()) { //needs a godo way to exit out of the loop
             //read the camera, and store the position, increase the confidence rating based ont eh consitancy of readings
-            recognize_block();
-
-
+            auto.recognize_block();
 
         }
         auto.start(); //still need to check if these are correct
-        auto.most_recent_position = most_recent_position;
+
 
         telemetry.addData("pos guess",most_recent_position);
         telemetry.update();
 
-        auto.grabBlockFastColor(move_from_wall,block_distance,block_forward_dist);
+        auto.grabBlockFastColor(move_from_wall,block_distance,block_forward_dist, true); //this is for the red side
         //moveDirMax(0,1,0,(int) (block_forward_dist+(block_distance/Math.sqrt(2))-wall_buffer),4000);
 
         int extra_dist = (2-most_recent_position) * 600;
@@ -110,22 +108,20 @@ public class RedBlockFoundation extends LinearOpMode {
         auto.turnOrient(-1,0,1000,0,0,0); //make this go a little faster
         Robot.resetTime();
         Robot.reset_pow();
-        auto.moveDir(0,-.75,0,1000,1000,0,0,0); // a little bit more on the slow side, to ensur eit doesn't push it too much
-        { //outtake for a second
+        auto.moveDir(0,-.75,0,1000,2000,0,0,0); // a little bit more on the slow side, to ensur eit doesn't push it too much
+        {
 
             Robot.resetTime();
-
+            double[] powers = motorPower.calcMotorsFull(0, -.4, 0);
+            for (int i = 0; Robot.motors.length > i; i++) {
+                Robot.motors[i].setTargetPosition((int) (Math.abs(powers[i])/powers[i]*block_forward_dist)); //can amke this faster
+            }
+            Robot.setMotors(powers, 1);
             ElapsedTime pantTime = new ElapsedTime();
-            while (pantTime.milliseconds() < 700  ) {
-
-
-                Robot.outtake(1);
-
-                //if(pantTime.milliseconds() < 500) {
-                Robot.runServo(-1); //is this the right amount of time?, a little less just to ensure it works
-                //maximum speed
-                //increasing this to make the other part faster
-                //}
+            while (pantTime.milliseconds() < 900) {
+                Robot.runServoDown();
+                Robot.setMotors(powers, 1);
+                Robot.outtake();
             }
             Robot.resetTime();
             Robot.reset_pow();
@@ -134,8 +130,7 @@ public class RedBlockFoundation extends LinearOpMode {
         auto.turnOrient(1,0,1400,0,0,0);
         //moveDirMax(1,0,0,foundation_side,3000); //not sure if this is in the right direction
         //moveDirMax(1,0,0,2000,3000); //2000?
-        Robot.resetTime();
-        Robot.resetTime(); //not sure whats going on here
+
         auto.moveDir(0,.75,0,foundation_back+foundation_buff,4500,0,0,0);
         //this doesn't seem to work?
         //not exactly sure wha tto do here,
@@ -144,7 +139,7 @@ public class RedBlockFoundation extends LinearOpMode {
             Robot.resetTime();
 
             ElapsedTime pantTime = new ElapsedTime();
-            while (pantTime.milliseconds() < 1400  ) { //one second less, since running it earlier
+            while (pantTime.milliseconds() < 1400 && !auto.timePast() ) { //one second less, since running it earlier
                 Robot.runServoDown();
             }
             Robot.reset_pow();
@@ -153,8 +148,22 @@ public class RedBlockFoundation extends LinearOpMode {
         telemetry.update();
         //should it go max speed, or should it like ramp up, or something like that?
         moveDirMax(0,-1,0,foundation_pull,3000);
-        auto.turnOrient(0,1,3000,0,0,.3);
-        auto.moveDirMax(-.3,-1,0,2500,3000,0,0,1); //this line needs testing
+        auto.turnOrient(0,1,3000,0,0,0);
+        { //outtake for a second
+
+            Robot.resetTime();
+
+            ElapsedTime pantTime = new ElapsedTime();
+            while (pantTime.milliseconds() < 800 && !auto.timePast()  ) { //one second less, since running it earlier
+                Robot.runServoUp();
+            }
+            Robot.resetTime();
+            Robot.reset_pow();
+        }
+        auto.moveDirMax(-1,0,0,100,800,0,0,1);
+        auto.moveDirMax(-1*.4,-1,0,2500,3000,0,0,1); //this line needs testing
+        //need a bit of a strafe to ensure it gets into the corner
+
         //need a bit of a strafe to ensure it gets into the corner
 
         /*

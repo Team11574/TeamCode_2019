@@ -22,6 +22,8 @@ import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer;
 
+import java.util.ArrayList;
+
 
 public class Robot {
     public static ElapsedTime runtime = new ElapsedTime();
@@ -55,6 +57,7 @@ public class Robot {
     public static final float eps = .01f;
     public static double alpha1 = 50;
     public static double alphaMult = 1.5;
+    public static int[] positions = new int[4];
     // /* Camera ^^
 
 
@@ -78,6 +81,7 @@ public class Robot {
         tr.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         bl.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         br.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+
         for (int i = 0; motors.length > i; i++) {
             motors[i].setTargetPosition(0);
             Robot.motors[i].setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER); //reset encoders to start
@@ -125,7 +129,7 @@ public class Robot {
         piston1 = hardwareMap.get(Servo.class,"Piston1");
         piston2 = hardwareMap.get(Servo.class,"Piston2");
 
-         //This one is the correct one for now, I believe
+        //This one is the correct one for now, I believe
         // /*
 
 
@@ -212,6 +216,60 @@ public class Robot {
         }
         return ang;
     }
+    public static void turnIterative(double ang) {
+        turnIterative(ang,0,0,0);
+
+    }
+    public static void turnIterative(double goal_ang, double pant_pow, double in_pow, double servo_power) {
+
+
+        double imu_ang = Robot.angle();
+        double ang_rot = (goal_ang % Math.PI); //angle your game stick is facing
+        double mag_rot = 1;
+        double goal_rot_ang = Robot.distanceTurn(imu_ang,ang_rot); //
+
+        double nrot = 0;
+        if (Math.abs(goal_rot_ang) > 0.50) { //amount goal angle needs to be off to actually turn in that direction
+
+            nrot = goal_rot_ang; //rotation is the direction of rotation
+            //
+            //test value of /2.0 just ot
+            //maybe do if cur_ang + ang_turn > goal_ang then turn only goal_ang-cur_ang
+        } else {
+
+            //nrot = goal_rot_ang * (mag_rot) * (Math.abs(goal_rot_ang) + .4); //rotation is the direction of rotation
+            if (goal_rot_ang != 0) {
+                nrot = (Math.abs(goal_rot_ang) / goal_rot_ang) * (Math.abs(goal_rot_ang) + .25); //is this too fast?
+            }
+            // nrot = nrot>0?.1 + nrot:-.1+nrot;
+        }
+        Robot.pantagraph.setPower(pant_pow);
+        Robot.intakeR.setPower(in_pow);
+        Robot.intakeL.setPower(in_pow);
+        Robot.runServo(servo_power);
+        Robot.setMotors(0, 0, -nrot, Math.abs(goal_rot_ang) > 0.50);
+        //Robot.setMotors(0, 0, -nrot/2.0, false);
+
+    }
+    public static void turnIterative2(double goal_ang) {
+
+
+        double imu_ang = Robot.angle();
+        double ang_rot = (goal_ang % Math.PI); //angle your game stick is facing
+        double mag_rot = 1;
+        double goal_rot_ang = Robot.distanceTurn(imu_ang,ang_rot); //
+        if( Math.abs(Robot.distanceTurn(imu_ang+.01,ang_rot)) < Math.abs(goal_rot_ang) ) {
+            Robot.setMotors(0, 0, -(Math.abs(goal_rot_ang) + .25), Math.abs(goal_rot_ang) > 0.50);
+        }
+        else {
+            Robot.setMotors(0, 0, (Math.abs(goal_rot_ang) + .25), Math.abs(goal_rot_ang) > 0.50);
+        }
+
+
+        //Robot.setMotors(0, 0, -nrot/2.0, false);
+
+    }
+
     public static double[] orientMode(double vx ,double vy ,double rot,double rot2) {
 
 
@@ -274,6 +332,7 @@ public class Robot {
             Robot.pantagraph.setPower(0);
         }
     }
+
     public static void reset_pow() {
         Robot.pantagraph.setPower(0);
         Robot.offtake();
@@ -305,6 +364,17 @@ public class Robot {
         Robot.intakeR.setPower(0);
         Robot.intakeL.setPower(0);
     }
+    public static void update_position() {
+        //update positions with whatever the current positions are
+        for (int i = 0; motors.length > i; i++) {
+            positions[i] = motors[i].getCurrentPosition();
+        }
+    }
+    public static double angle() {
+        return ((Robot.imu.getAngularOrientation().firstAngle + 0*Math.PI/2.0) % Math.PI); //not sure if negative is correct
+        //return the current imu_angle
+    }
+
     /*
     public static int blockPosition(int[] center, int wide,int high) {
         final int low_hi = high + high/10;
@@ -423,8 +493,8 @@ public class Robot {
         }
     }
     //ALSO
-        //COULD CONSIDER PLAYING NOISE WHEN IT FINISHES
-        //OR WHEN IT FINDS THE BLOCK
+    //COULD CONSIDER PLAYING NOISE WHEN IT FINISHES
+    //OR WHEN IT FINDS THE BLOCK
     //move based on direction
 
     public static void mmToDist(double mm) {
@@ -444,6 +514,15 @@ public class Robot {
         }
         return finished;
     }
+    public static double motorsDist() {
+        double dist = 0;
+        for (int i =0; motors.length > i; i++) {
+            dist += Math.abs(Robot.motors[i].getCurrentPosition() - Robot.positions[i]); //absolute vlaue to ensure they don't cancel each other out
+        }
+        dist /= 4;
+        return dist;
+    }
+
     public static void resetTime() {
         runtime.reset();
     }
@@ -461,12 +540,12 @@ public class Robot {
     public static void moveVx(double vx, double vy, int distance, boolean max) { //not rot aspect for now, since that might be super confusing
 
         //distance should be converted before calling this method
-       setMotors(vx,vy,0,max);
-       for (int i = 0; motors.length > i; i++) {
-           //not sure if this shoudl have Math.abs()??
-           motors[i].setTargetPosition( (int) Math.abs((distance )) ); //we want to scale based on power, since the ones with less power should travel
-           //equally less distance
-       }
+        setMotors(vx,vy,0,max);
+        for (int i = 0; motors.length > i; i++) {
+            //not sure if this shoudl have Math.abs()??
+            motors[i].setTargetPosition( (int) Math.abs((distance )) ); //we want to scale based on power, since the ones with less power should travel
+            //equally less distance
+        }
     }
     public static void moveVx(double vx, double vy, double rot, int distance, boolean max) { //not rot aspect for now, since that might be super confusing
 
@@ -564,7 +643,7 @@ public class Robot {
         }
         */
 
-/*
+
         telemetry.addData("color",
                 String.format("r:%d, g:%d, b:%d, a:%d",
                         mColorSensor.red(),
@@ -572,11 +651,11 @@ public class Robot {
                         mColorSensor.blue(),
                         mColorSensor.alpha()));
 
- */
+        telemetry.update();
 
-         if(mColorSensor.alpha() > alpha1*alphaMult) {
-             return true;
-         }
+        if(mColorSensor.alpha() > alpha1*alphaMult) {
+            return true;
+        }
 
 
         //telemetry.update();
@@ -635,10 +714,23 @@ public class Robot {
             piston2.setPosition(close);
         }
     }
+    public static double[] scaleJoyStick() {
+        double vx = Robot.gamepad1.left_stick_x;
+        double vy = Robot.gamepad1.left_stick_y;
+        double rot = -Robot.gamepad1.right_stick_x;
+        double rot2 = Robot.gamepad1.right_stick_y;
+        return new double[]{vx,vy,rot,rot2};
+    }
+    public static void moveFromJoystick() {
+
+    }
+    //public static double[] move
+
 
     public class AUTO {
         //could make something that keeps track of position or something
         LinearOpMode extra_funcs;
+        int[] positions = new int[4];
         int most_recent_position =0;
         public int wall_buffer = 1900;//distance from wall after you back up, applies to all times after
         //was previously 500 when it worked
@@ -651,6 +743,7 @@ public class Robot {
         final int[][] ranges = { {0,640/3}, {640/3,(2*640)/3}, {(2*640)/3,640}}; //just some test values, will need to see what it looks like to determine these values
         /* Recognizes block using the camera, returns the result by chaning the value of most_recent_position */
         boolean can_use_time = false;
+        boolean using_positions = false; //maybe use this
         //coudl make a move with reajust, which moves and only reajusts if angl eis off by enough
         public void recognize_block() {
 
@@ -680,13 +773,138 @@ public class Robot {
             telemetry.update();
         }
         public void start() {
-            extra_funcs.resetStartTime();
-            can_use_time = true;
+            if (extra_funcs != null) {
+                extra_funcs.resetStartTime();
+                can_use_time = true;
+            }
             alpha1 = mColorSensor.alpha();//starting alpha value
+            positions = new int[4];
             //nay other stuff has to do on start
+        }
+        public void update_position() {
+            //update positions with whatever the current positions are
+            for (int i = 0; motors.length > i; i++) {
+                positions[i] = motors[i].getCurrentPosition();
+            }
+        }
+
+        public void grabBlockFastColor(int move_from_wall,int block_distance, int block_forward_dist, boolean mode2) {
+
+            {
+
+                Robot.resetTime();
+                ElapsedTime pantTime = new ElapsedTime();
+                while (!checkDone(500)) { //need to check if some are done
+                    //Robot.setMotors(powers, 1);
+                    Robot.pantagraphDown(pantTime);
+                    //Robot.intake();
+                }
+                Robot.reset_pow();
+            }
+            //extra time to put pantagraph down
+            //moveDirMax(0,-1,0,move_from_wall,500,-1,0); //no move form wall, just seem sto cause problems
+            if(most_recent_position == 2) { //then to the right
+                moveDirMax(-.6,-1,0,(int)(block_distance_x+200),2000,-1,0);
+                //moveDirMax(0,-1,0,(int) (block_distance/Math.sqrt(2)),3000,-1,0); //these don't work
+                //maybe coudl slightly improve this, but not by much, sine its limited by the speed of the pantagraph
+
+            }
+            if(most_recent_position == 0) {
+                moveDirMax(.48,-1,0,(int)(block_distance_x+200),2000,-1,0);
+
+                //moveOrient(1,-1,0,0,block_distance,1000); //these don't work
+
+            }
+            if (most_recent_position == 1) {
+                //the distance will have to be shorter here
+                //need to divide by sqrt(2), since this is a 45,45,90 triangle, and we want ot move
+                //and equal amount in terms of y
+                moveDirMax(0, -1, 0, (int) (200+ block_distance_x*1.3), 2000,-1,0);
+            }
+
+            this.intakeBlockColor(block_forward_dist*4,4500,(int) (block_distance/Math.sqrt(2)) );
+
+
+
+
         }
         public void grabBlockFastColor(int move_from_wall,int block_distance, int block_forward_dist) {
 
+            {
+
+                Robot.resetTime();
+                ElapsedTime pantTime = new ElapsedTime();
+                while (!checkDone(500)) { //need to check if some are done
+                    //Robot.setMotors(powers, 1);
+                    Robot.pantagraphDown(pantTime);
+                    //Robot.intake();
+                }
+                Robot.reset_pow();
+            }
+            //extra time to put pantagraph down
+            //moveDirMax(0,-1,0,move_from_wall,500,-1,0); //no move form wall, just seem sto cause problems
+            if(most_recent_position == 2) { //then to the right
+                moveDirMax(-.48,-1,0,(int)(block_distance_x+200),2000,-1,0);
+                //moveDirMax(0,-1,0,(int) (block_distance/Math.sqrt(2)),3000,-1,0); //these don't work
+                //maybe coudl slightly improve this, but not by much, sine its limited by the speed of the pantagraph
+
+            }
+            if(most_recent_position == 0) {
+                moveDirMax(.6,-1,0,(int)(block_distance_x+200),2000,-1,0);
+
+                //moveOrient(1,-1,0,0,block_distance,1000); //these don't work
+
+            }
+            if (most_recent_position == 1) {
+                //the distance will have to be shorter here
+                //need to divide by sqrt(2), since this is a 45,45,90 triangle, and we want ot move
+                //and equal amount in terms of y
+                moveDirMax(0, -1, 0, (int) (200+ block_distance_x*1.3), 2000,-1,0);
+            }
+
+            this.intakeBlockColor(block_forward_dist*4,4500,(int) (block_distance/Math.sqrt(2)) );
+
+
+
+
+        }
+        public void intakeBlockColor(double max_dist, int max_time, int extra_back) {
+            double average_motor_len =0;
+            {
+                Robot.reset_pow();
+                Robot.resetTime();
+                double[] powers = motorPower.calcMotorsFull(0, -.8, 0);
+                for (int i = 0; Robot.motors.length > i; i++) {
+                    Robot.motors[i].setTargetPosition((int) (Math.abs(powers[i])/powers[i]*max_dist)); //can amke this faster
+                }
+                Robot.setMotors(powers, 1);
+                ElapsedTime pantTime = new ElapsedTime();
+                boolean grabbedBlock = false;
+                double distance_traveled = 0;
+                while (!checkDone(max_time) && !grabbedBlock) { //need to check if some are done
+                    Robot.setMotors(powers, 1);
+                    Robot.pantagraphDown(pantTime);
+                    Robot.intake(1); //maybe .7 will be more relaible
+                    grabbedBlock = Robot.isBlock();
+                }
+                for (int i = 0; motors.length > i; i++) {
+                    average_motor_len += Math.abs(motors[i].getCurrentPosition());
+                    //since we travelled forward, we can just move that part backwards
+                }
+                average_motor_len /= 4.0;
+                telemetry.addData("motor len" ,average_motor_len);
+                telemetry.update();
+
+            }
+            Robot.resetTime();
+            Robot.reset_pow();
+            //telemetry.addData()
+            //now we have intaked the block, so lets quickly move back
+            //notee: still have ot accoutn for the difference in x position caused by goign for different bloccks
+            moveDirMax(0,1,0,250+(int) (average_motor_len+extra_back-wall_buffer),4000); //a little less, since the longer it runs seems to go farther back
+        }
+        public void grabBlockFast(int move_from_wall,int block_distance, int block_forward_dist) {
+            //untested, but should grab the block quicker than it did before, hopefully with the same degree of accuracy
             {
 
                 Robot.resetTime();
@@ -718,103 +936,28 @@ public class Robot {
                 //and equal amount in terms of y
                 moveDirMax(0, -1, 0, (int) (block_distance_x*1.3), 2000,-1,0);
             }
-
-            this.intakeBlockColor(block_forward_dist,3000,(int) (block_distance/Math.sqrt(2)) );
-
-
-
-
-        }
-        public void intakeBlockColor(double max_dist, int max_time, int extra_back) {
-            double average_motor_len =0;
             {
 
                 Robot.resetTime();
                 double[] powers = motorPower.calcMotorsFull(0, -.8, 0);
                 for (int i = 0; Robot.motors.length > i; i++) {
-                    Robot.motors[i].setTargetPosition((int) (Math.abs(powers[i])/powers[i]*max_dist)); //can amke this faster
+                    Robot.motors[i].setTargetPosition((int) (Math.abs(powers[i])/powers[i]*block_forward_dist)); //can amke this faster
                 }
                 Robot.setMotors(powers, 1);
                 ElapsedTime pantTime = new ElapsedTime();
-                boolean grabbedBlock = false;
-                double distance_traveled = 0;
-                while (!checkDone(max_time) && !grabbedBlock) { //need to check if some are done
+                while (!checkDone(3000)) { //need to check if some are done
                     Robot.setMotors(powers, 1);
                     Robot.pantagraphDown(pantTime);
                     Robot.intake(1); //maybe .7 will be more relaible
-                    grabbedBlock = Robot.isBlock();
-                }
-                for (int i = 0; motors.length > i; i++) {
-                    average_motor_len += Math.abs(motors[i].getCurrentPosition());
-                    //since we travelled forward, we can just move that part backwards
-                }
-                average_motor_len /= 4.;
-                telemetry.addData("motor len" ,average_motor_len);
-                telemetry.update();
+                    telemetry.addData("Has grabbed block?",Robot.isBlock());
+                    telemetry.update();
 
+                }
+                Robot.reset_pow();
             }
-            Robot.resetTime();
-            Robot.reset_pow();
-            //telemetry.addData()
             //now we have intaked the block, so lets quickly move back
             //notee: still have ot accoutn for the difference in x position caused by goign for different bloccks
-            moveDirMax(0,1,0,(int) (average_motor_len+extra_back-wall_buffer),4000);
-        }
-        public void grabBlockFast(int move_from_wall,int block_distance, int block_forward_dist) {
-                //untested, but should grab the block quicker than it did before, hopefully with the same degree of accuracy
-                {
-
-                    Robot.resetTime();
-                    ElapsedTime pantTime = new ElapsedTime();
-                    while (!checkDone(500)) { //need to check if some are done
-                        //Robot.setMotors(powers, 1);
-                        Robot.pantagraphDown(pantTime);
-                        //Robot.intake();
-                    }
-                    Robot.reset_pow();
-                }
-                //extra time to put pantagraph down
-                moveDirMax(0,-1,0,move_from_wall,500,-1,0);
-                if(most_recent_position == 2) { //then to the right
-                    moveDirMax(-.5,-1,0,(int)(block_distance_x/1),2000,-1,0);
-                    //moveDirMax(0,-1,0,(int) (block_distance/Math.sqrt(2)),3000,-1,0); //these don't work
-                    //maybe coudl slightly improve this, but not by much, sine its limited by the speed of the pantagraph
-
-                }
-                if(most_recent_position == 0) {
-                    moveDirMax(.6,-1,0,(int)(block_distance_x),2000,-1,0);
-
-                    //moveOrient(1,-1,0,0,block_distance,1000); //these don't work
-
-                }
-                if (most_recent_position == 1) {
-                    //the distance will have to be shorter here
-                    //need to divide by sqrt(2), since this is a 45,45,90 triangle, and we want ot move
-                    //and equal amount in terms of y
-                    moveDirMax(0, -1, 0, (int) (block_distance_x*1.3), 2000,-1,0);
-                }
-                {
-
-                    Robot.resetTime();
-                    double[] powers = motorPower.calcMotorsFull(0, -.8, 0);
-                    for (int i = 0; Robot.motors.length > i; i++) {
-                        Robot.motors[i].setTargetPosition((int) (Math.abs(powers[i])/powers[i]*block_forward_dist)); //can amke this faster
-                    }
-                    Robot.setMotors(powers, 1);
-                    ElapsedTime pantTime = new ElapsedTime();
-                    while (!checkDone(3000)) { //need to check if some are done
-                        Robot.setMotors(powers, 1);
-                        Robot.pantagraphDown(pantTime);
-                        Robot.intake(1); //maybe .7 will be more relaible
-                        telemetry.addData("Has grabbed block?",Robot.isBlock());
-                        telemetry.update();
-
-                    }
-                    Robot.reset_pow();
-                }
-                //now we have intaked the block, so lets quickly move back
-                //notee: still have ot accoutn for the difference in x position caused by goign for different bloccks
-                moveDirMax(0,1,0,(int) (block_forward_dist+(block_distance/Math.sqrt(2))-wall_buffer),4000);
+            moveDirMax(0,1,0,(int) (block_forward_dist+(block_distance/Math.sqrt(2))-wall_buffer),4000);
 
         }
         public void grabBlock(int move_from_wall,int block_distance, int block_forward_dist) {
@@ -872,9 +1015,10 @@ public class Robot {
             moveDirMax(0,1,0,(int) (block_forward_dist+(block_distance/Math.sqrt(2))-wall_buffer),4000);
         }
         /* MOVE TO FOUNDATION AFTER GRABBING BLOCK */
-            //direction up-- 1 is left, -1 is right
+        //direction up-- 1 is left, -1 is right
         public void moveToFoundationFast(int direction_up, int line_dist_from_start, int foundation_dist) {
-            turnOrient(-1,0,450,0,0,0);//doesnt need to be that long, actually, wait until second step
+            turnOrient(-1,0,1050,0,0,0);//doesnt need to be that long, actually, wait until second step
+            sleep(100); //wait a second
             //int line_dist_from_start = line_dist_from_start2 + foundation_dist;
             if(direction_up == 1) { //consider whether the motion before added to length or subtracted
                 if (most_recent_position == 2) {
@@ -1044,7 +1188,7 @@ public class Robot {
 
         //Maybe add a park thing in here later
         /*******
-        ROBOT AUTO FUNCTIONALITY
+         ROBOT AUTO FUNCTIONALITY
          *******/
         //Turns robot to speicifc angle
         AUTO(LinearOpMode reference) {
@@ -1053,7 +1197,15 @@ public class Robot {
         public void turnOrient(double gamepady, double gamepadx, int max_time) {
             turnOrient(gamepady,gamepadx,max_time,0,0,0);
         }
+        public void turnOrient(double ang, int max_time) {
+            double x= Math.cos(ang);
+            double y = -Math.sin(ang);
+            turnOrient(y,x,max_time,0,0,0);
+        }
         public void turnOrient(double gamepady, double gamepadx, int max_time, double pant_pow, double in_pow, double servo_power) {
+            turnOrient(gamepady,gamepadx,max_time,pant_pow,in_pow,servo_power,.03);
+        }
+        public void turnOrient(double gamepady, double gamepadx, int max_time, double pant_pow, double in_pow, double servo_power, double error_allowed) {
 
             Robot.resetTime();
             Robot.reset_pow();
@@ -1103,7 +1255,7 @@ public class Robot {
             }
             boolean change_sign  = false;
             boolean  prev_positive = (goal_rot_ang > 0);
-            while( (! (Robot.timeElapsed() > max_time) && !change_sign) || Math.abs(goal_rot_ang) > .01) { //not sure if .05 is the rigth value, will have to test it a little
+            while( (! (Robot.timeElapsed() > max_time) && !change_sign) || Math.abs(goal_rot_ang) > error_allowed) { //not sure if .05 is the rigth value, will have to test it a little
 
                 double imu_ang = (Robot.imu.getAngularOrientation().firstAngle + 0 * Math.PI / 2.0) % Math.PI;
                 double ang_rot = Math.atan2(rot, rot2) - Math.PI / 2.0; //angle your game stick is facing
@@ -1122,7 +1274,7 @@ public class Robot {
                 if (Math.abs(goal_rot_ang) > 0.20) { //amount goal angle needs to be off to actually turn in that direction
 
                     nrot = goal_rot_ang; //rotation is the direction of rotation
-                        //
+                    //
                     //test value of /2.0 just ot
                     //maybe do if cur_ang + ang_turn > goal_ang then turn only goal_ang-cur_ang
                 } else {
@@ -1224,6 +1376,51 @@ public class Robot {
             Robot.resetTime();
 
         }
+        public void moveDirMaxRamp(double vx, double vy, double rot, int max_time, double dist, double in_time, double start_speed, double new_speed, double pant_pow,double in_pow,double servo_power) {
+            Robot.resetTime();
+            update_position(); //current positiosn are now the "zeroes"
+            //double cur_time = Robot.timeElapsed();
+            double[] powers = motorPower.calcMotorsFull(vx, vy, rot);
+            for (int i = 0; Robot.motors.length > i; i++) {
+                Robot.motors[i].setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+                Robot.motors[i].setTargetPosition(positions[i] + (int) ( (Math.abs(powers[i])/powers[i]) * dist)); //go to current position, plus whatever position we have to move at
+
+            }
+            Robot.setMotorsMax(powers, 1);
+            while (!checkDone(max_time)) { //need to check if some are done
+                double len = motorPower.rampUp(Robot.timeElapsed(),in_time,start_speed,new_speed); //not sure if 0 to one is the right thing to do, but I can test that
+
+                Robot.setMotorsMax(powers,len); //goal length is
+                Robot.pantagraph.setPower(pant_pow);
+                Robot.intakeR.setPower(in_pow);
+                Robot.intakeL.setPower(in_pow);
+                Robot.runServo(servo_power);
+            }
+            Robot.resetTime();
+        }
+        public void moveDirMaxRamp(double vx, double vy, double rot, int max_time, double dist, double pant_pow,double in_pow,double servo_power) {
+            Robot.resetTime();
+            update_position(); //current positiosn are now the "zeroes"
+            //double cur_time = Robot.timeElapsed();
+            double[] powers = motorPower.calcMotorsFull(vx, vy, rot);
+            for (int i = 0; Robot.motors.length > i; i++) {
+                Robot.motors[i].setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+                Robot.motors[i].setTargetPosition(positions[i] + (int) ( (Math.abs(powers[i])/powers[i]) * dist)); //go to current position, plus whatever position we have to move at
+
+            }
+            Robot.setMotorsMax(powers, 1);
+            while (!checkDone(max_time)) { //need to check if some are done
+                double len = motorPower.rampUp(Robot.timeElapsed(),500,0,1); //not sure if 0 to one is the right thing to do, but I can test that
+
+                Robot.setMotorsMax(powers,len); //goal length is
+                Robot.pantagraph.setPower(pant_pow);
+                Robot.intakeR.setPower(in_pow);
+                Robot.intakeL.setPower(in_pow);
+                Robot.runServo(servo_power);
+            }
+            Robot.resetTime();
+        }
+
         public void moveDirMax(double vx, double vy, double rot,int dist, int max_time) {
 
             moveDirMax(vx,vy,rot,dist,max_time,0,0,0);
@@ -1256,7 +1453,7 @@ public class Robot {
             Robot.resetTime();
         }
         public boolean timePast() {
-            if(can_use_time && extra_funcs.getRuntime() > 29.5 ) { //only run thorugh this if time has properly been intialized
+            if(can_use_time &&  (extra_funcs.getRuntime() > 29.5) ) { //only run thorugh this if time has properly been intialized
 
                 Robot.reset_pow(); //time to stop
                 return true;
@@ -1279,7 +1476,7 @@ public class Robot {
             }
 
 
-            if(extra_funcs.isStopRequested()) {
+            if( (extra_funcs != null ) && extra_funcs.isStopRequested()) {
                 Robot.reset_pow();
                 throw new StopException();
                 //return true;
@@ -1288,9 +1485,12 @@ public class Robot {
                 //should force it to stop
                 //return true;
             }
-            if(Robot.motorsFinished() >= 4 && Robot.timeElapsed() > 150) { //150 milli before it will end
+
+            if (Robot.motorsFinished() >= 4 && Robot.timeElapsed() > 50) { //150 milli before it will end
                 return true; //expiermental code here
             }
+
+
        /*
        if(Robot.motorsFinished() >= 2) {
            return true;
@@ -1311,6 +1511,82 @@ public class Robot {
 
 
         }
+        //these are probably not useful for now, but they might be useful in devoloping the robot thing later on
+        //Dont use these, they are old and just usefl for possible copy pasting part of them to other parts of code
+        public void interpretLineMult(String line, String item_seperator, String line_seperator, boolean[] modes, double xm, double ym, double rot) {
+            line = line.replace(item_seperator,"");
+            String[] tokens = line.split(item_seperator);
+            String first = tokens[0]; //coudl crash here, if there are no items
+            boolean max_mode = modes[0];
+            boolean orient = modes[1];
+            boolean slow_intake = modes[2];
+
+            //now we have all data
+            if (first == "M") {
+                double[] gamepads = new double[4];
+                for (int i = 0; 4 > i; i++) {
+                    gamepads[i]= Double.parseDouble(tokens[1+i]);
+                    //read next 4, and parse to double
+                }
+                double distance = Double.parseDouble(tokens[6]);
+                double angle = Double.parseDouble(tokens[7]);
+                double[] control = new double[3];
+                for (int i = 0; 3 > i; i++) {
+                    control[i]= Double.parseDouble(tokens[8+i]);
+                }
+                //here, we will update the movement based on the current values
+                //don't forget to check modes for how to do this
+                //modes are in form
+
+                //auto a = this.new auto();
+                //first 4 are gamepad power
+                if(!orient) {
+                    //then we can use the Robot maxMove
+                    double div = 1;
+                    if (slow_intake) {
+                        div = 2.4;
+                    }
+                    if (max_mode) {
+                        moveDirMaxRamp(gamepads[0]*xm,gamepads[1]*ym,gamepads[2]*rot,(int)distance*2,distance,control[2],(control[0]-control[1])/div,0);
+                    }
+                    else {
+                        moveDir(gamepads[0]*xm,gamepads[1]*ym,gamepads[2]*rot,(int)distance*2,(int)distance,control[2],(control[0]-control[1])/div,0);
+                    }
+                }
+
+            }
+            else if(first == "B") {
+                //here, we update the modes, and then were done
+                for (int i = 1; tokens.length > i; i++) {
+                    modes[i-1] = tokens[i].equals("T")?true:false;
+                }
+                //thats all, just update modes
+            }
+            else {
+                telemetry.addData("Unrecognized Command", "cannot run this line");
+                telemetry.update();
+            }
+        }
+        public void interpretLine(String line, String item_seperator, String line_seperator, boolean[] modes) {
+            interpretLineMult(line,item_seperator,line_seperator,modes,1,1,1);
+        }
+        public void interpretLineBack(String line, String item_seperator, String line_seperator, boolean[] modes) {
+            interpretLineMult(line,item_seperator,line_seperator,modes,-1,-1,-1);
+            //not sure if this is right
+            //proabably want to include angle somehow, but how?
+            //maybe after move, ensure its at the angle its supposed to be at
+        }
+        public void ensureAngle(double angle_goal, double allowed_error) {
+            double cur_angle = Robot.angle();
+            double angle_dist = Robot.distanceTurn(cur_angle, angle_goal);
+            if(Math.abs(angle_dist) > allowed_error) {
+                //then, we need to change angle
+                turnOrient(angle_goal,1000);
+
+            }
+        }
+        //
+
     }
     public class StopException extends RuntimeException {
         public StopException() {super();}

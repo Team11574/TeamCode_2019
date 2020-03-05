@@ -26,7 +26,7 @@ public class BlueBlockFoundation extends LinearOpMode {
     final int block_distance_x = 780;
     final int move_from_wall = 100; //Distance to move foward orm the wall to not be at risk to get caught on the wall
     final int block_forward_dist = 1600; //Distance to move foward while grabbing the block
-    final int foundation_dist = 5350;
+    final int foundation_dist = 4650;
     final int foundation_forward =2350-wall_buffer;
     final int foundation_side = 200;
     final int foundation_buff = 550; //buffer for moving it outwards
@@ -73,6 +73,7 @@ public class BlueBlockFoundation extends LinearOpMode {
 
 
         }
+        auto.start();
         most_recent_position = auto.most_recent_position; //because this isn't going to have its most_recent_position updated, only auto will, since it it using the camera
         telemetry.addData("pos guess",most_recent_position);
         telemetry.update();

@@ -14,6 +14,25 @@ public class motorPower {
 
 
     public static final double eps = .00001; //epsiolon when computing calcv_0
+    static double rampUp(double cur_time, double in_time, double low, double hi) {
+        //rampUp to hi from hi to low
+        //does this in <in_time>
+        //pass in cur time to get the current power you should have to ramp up
+        double val = low + (hi-low)*(sigma( ( (cur_time*2.2681)/in_time) + p )-fp );
+        if (val > hi) {
+            return hi;
+        }
+        if (val < low) {
+            return low;
+        }
+        return val;
+    }
+    static double p = -1.27856454276107379510935873902298015543947748861974576545d; //approximation of the x value of the absolute min
+    static double fp = sigma(p);
+    //a little bit is added to this to ensure the direction doesn't change because of rounding errors
+    static double sigma(double x) {
+        return (x/(1.+Math.pow(Math.E,-x)));
+    }
     static double calcv_0(double vx,double vy, double rot) {
         /*
             Calcuates the value of v_0 which will esult in the smallest max(new double[]{v_0,v_1,v_2,v_3} );

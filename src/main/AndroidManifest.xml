@@ -5,8 +5,10 @@
      So it won't ultimately be as empty as it might here appear to be :-) -->
 
 <!-- The package name here determines the package for your R class and your BuildConfig class -->
+
 <manifest
     package="us.ftcteam11574.teamcode2019"
     xmlns:android="http://schemas.android.com/apk/res/android">
     <application/>
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" /> <!-- Not sure if this line works, but its supposed to allow us to write to storage-->
 </manifest>

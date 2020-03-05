@@ -5,7 +5,7 @@ import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.util.ElapsedTime;
-
+//not sure if this was going to work, want to test this
 @Autonomous(name="Red 2 Blocks Fast No Place", group="Autonomous")
 public class Red2BlocksFast extends LinearOpMode {
 
@@ -24,7 +24,7 @@ public class Red2BlocksFast extends LinearOpMode {
     final int block_distance = 1900; //Distance from the middle block to either the rigth or left block
     final int block_distance_x = 780;
     final int move_from_wall = 100; //Distance to move foward orm the wall to not be at risk to get caught on the wall
-    final int block_forward_dist = 1600; //Distance to move foward while grabbing the block
+    final int block_forward_dist = 1800; //Distance to move foward while grabbing the block
     final int extra_dist = (int) (2850*1.6)-1800;
 
 
@@ -56,7 +56,7 @@ public class Red2BlocksFast extends LinearOpMode {
         Robot.init_autoOp(telemetry, hardwareMap,gamepad1,gamepad2);
         Robot r =new Robot();
         Robot.AUTO auto = r.new AUTO(this);
-        auto.wall_buffer = 1400; //will be much closer
+        auto.wall_buffer = 2150; //will be much closer //previously 2400
 
         while(!isStarted()) { //needs a godo way to exit out of the loop
             //read the camera, and store the position, increase the confidence rating based ont eh consitancy of readings
@@ -66,9 +66,9 @@ public class Red2BlocksFast extends LinearOpMode {
 
         }
         auto.start();
-        auto.grabBlockFastColor(move_from_wall,block_distance,block_forward_dist);
+        auto.grabBlockFastColor(move_from_wall,block_distance,block_forward_dist,true);
         //auto.turnOrient(-1,0,500,0,0,0);
-        auto.moveToFoundationFast(-1, (line_dist_from_start), (extra_dist-500) );
+        auto.moveToFoundationFast(-1, (line_dist_from_start), (extra_dist) );
         //auto.moveToFoundationY(-1,line_dist_from_start,extra_dist);
         {
 
@@ -92,19 +92,24 @@ public class Red2BlocksFast extends LinearOpMode {
             auto.most_recent_position=2;
         }
 
+        int extra = 0; //extra dist to move back
+        if(most_recent_position == 0) {
+            extra = 700;
+        }
+
         if (auto.most_recent_position == 2) {
             //special case, need to change heading afteer this
 
-            auto.moveDirMax(1,0,0,(int) (line_dist_from_start+(4*block_distance_x/Math.sqrt(2)) -1100),4000,0,0,0);
+            auto.moveDirMax(1,0,0,(int) (line_dist_from_start+(4*block_distance_x/Math.sqrt(2)) -300),4000,0,0,0);
         }
         else {
-            auto.moveDirMax(1, 0, 0, (int) (line_dist_from_start + (4 * block_distance_x / Math.sqrt(2)) - 1100), 4000, 0, 0, 0);
+            auto.moveDirMax(1, 0, 0, (int) (line_dist_from_start + (4 * block_distance_x / Math.sqrt(2)) - 300 -extra), 4000, 0, 0, 0);
         }
         auto.turnOrient(-1,0,800); //turn to ensure direction
         auto.moveDirMax(1,.4,0,(int) (extra_dist*.9 - 400),4000,-.4,0,0);
         if (auto.most_recent_position == 2) {
-            auto.turnOrient(-1, .6, 800, -1, 0, 0); //turn to a special heading
-            auto.moveDirMax(0, -1, 0, (int) (850), 4000, -1, 0, 0);
+            auto.turnOrient(-1, .35, 800, -1, 0, 0); //turn to a special heading
+            auto.moveDirMax(0, -1, 0, (int) (1250), 4000, -1, 0, 0);
             boolean grabbedBlock = false;
             double distance_traveled = 0;
             double average_motor_len = 0;
@@ -123,21 +128,22 @@ public class Red2BlocksFast extends LinearOpMode {
                     Robot.intake(1); //maybe .7 will be more relaible
                     grabbedBlock = Robot.isBlock();
                 }
-                Robot.reset_pow();
+
             }
 
             for (int i = 0; Robot.motors.length > i; i++) {
                 average_motor_len += Math.abs(Robot.motors[i].getCurrentPosition());
+
                 //since we travelled forward, we can just move that part backwards
             }
             average_motor_len /= 4.;
-            auto.moveDirMax(0,1,0,(int) (average_motor_len+(int)( block_distance_x/Math.sqrt(2))-auto.wall_buffer),4000);
-            auto.turnOrient(-1,0,450,0,0,0);//doesnt need to be that long, actually, wait until second step
+            auto.moveDirMax(0,1,0,(int) (average_motor_len+(int)( block_distance_x/Math.sqrt(2))),4000);
+            auto.turnOrient(-1,0,850,0,0,0);//doesnt need to be that long, actually, wait until second step
             //a little extra orientation time
         }
         else {
             auto.turnOrient(-1, 0, 500, -1, 0, 0); //turn to ensure direction
-            auto.moveDirMax(0, -1, 0, (int) (850), 4000, -1, 0, 0);
+            auto.moveDirMax(0, -1, 0, (int) (1250), 4000, -1, 0, 0);
             auto.intakeBlockColor(block_forward_dist,3000,(int)( block_distance_x/Math.sqrt(2)) );
         }
         //might need to reorient the direction
@@ -180,7 +186,7 @@ public class Red2BlocksFast extends LinearOpMode {
             }
             Robot.reset_pow();
         }
-        auto.moveDirMax(1,0,0,1000,5000,0,0,0);
+        auto.moveDirMax(1,0,0,1800,5000,0,0,0);
         //move back to park
 
         //might be able to place

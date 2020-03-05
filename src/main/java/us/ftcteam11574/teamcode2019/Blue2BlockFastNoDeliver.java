@@ -56,7 +56,7 @@ public class Blue2BlockFastNoDeliver extends LinearOpMode {
         Robot.init_autoOp(telemetry, hardwareMap,gamepad1,gamepad2);
         Robot r =new Robot();
         Robot.AUTO auto = r.new AUTO(this);
-        auto.wall_buffer = 2250; //will be much closer
+        auto.wall_buffer = 2250; //will be much closer //previously 2400
 
         while(!isStarted()) { //needs a godo way to exit out of the loop
             //read the camera, and store the position, increase the confidence rating based ont eh consitancy of readings
@@ -85,21 +85,24 @@ public class Blue2BlockFastNoDeliver extends LinearOpMode {
             Robot.reset_pow();
         }
         auto.turnOrient(-1,0,800); //turn to ensure direction
-
+        int extra = 0;
+        if(most_recent_position == 0) {
+            extra = 700;
+        }
         //------
         if (auto.most_recent_position == 2) {
             //special case, need to change heading afteer this
-
-            auto.moveDirMax(1,0,0,(int) (line_dist_from_start+(4*block_distance_x/Math.sqrt(2)) -1100),4000,0,0,0);
+            //previously, was -1100
+            auto.moveDirMax(-1,0,0,(int) (line_dist_from_start+(4*block_distance_x/Math.sqrt(2)) - 300),4000,0,0,0);
         }
         else {
-            auto.moveDirMax(1, 0, 0, (int) (line_dist_from_start + (4 * block_distance_x / Math.sqrt(2)) - 1100), 4000, 0, 0, 0);
+            auto.moveDirMax(-1, 0, 0,200+ (int) (line_dist_from_start + (4 * block_distance_x / Math.sqrt(2)) - extra), 4000, 0, 0, 0);
         }
         auto.turnOrient(-1,0,800); //turn to ensure direction
         auto.moveDirMax(-1,.4,0,(int) (extra_dist*.9 - 400),4000,-.4,0,0);
         if (auto.most_recent_position == 2) {
-            auto.turnOrient(-1, -.6, 800, -1, 0, 0); //turn to a special heading
-            auto.moveDirMax(0, -1, 0, (int) (850), 4000, -1, 0, 0);
+            auto.turnOrient(-1, -.35, 800, -1, 0, 0); //turn to a special heading
+            auto.moveDirMax(0, -1, 0, (int) (1250), 4000, -1, 0, 0);
             boolean grabbedBlock = false;
             double distance_traveled = 0;
             double average_motor_len = 0;
@@ -118,7 +121,7 @@ public class Blue2BlockFastNoDeliver extends LinearOpMode {
                     Robot.intake(1); //maybe .7 will be more relaible
                     grabbedBlock = Robot.isBlock();
                 }
-                Robot.reset_pow();
+
             }
 
             for (int i = 0; Robot.motors.length > i; i++) {
@@ -132,7 +135,7 @@ public class Blue2BlockFastNoDeliver extends LinearOpMode {
         }
         else {
             auto.turnOrient(-1, 0, 500, -1, 0, 0); //turn to ensure direction
-            auto.moveDirMax(0, -1, 0, (int) (850), 4000, -1, 0, 0);
+            auto.moveDirMax(0, -1, 0, (int) (1250), 4000, -1, 0, 0);
             auto.intakeBlockColor(block_forward_dist,3000,(int)( block_distance_x/Math.sqrt(2)) );
         }
 
@@ -155,7 +158,7 @@ public class Blue2BlockFastNoDeliver extends LinearOpMode {
             }
             Robot.reset_pow();
         }
-        auto.moveDirMax(-1,0,0,1000,5000,0,0,0);
+        auto.moveDirMax(-1,0,0,1800,5000,0,0,0); //ark
         //might be able to place
         //
 

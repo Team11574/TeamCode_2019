@@ -5,7 +5,7 @@ import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.util.ElapsedTime;
-
+@Disabled
 @Autonomous(name="Blue 2 Blocks Fast", group="Autonomous")
 public class Blue2BockFast extends LinearOpMode {
 
@@ -66,7 +66,7 @@ public class Blue2BockFast extends LinearOpMode {
 
         }
 
-        auto.grabBlockFast(move_from_wall,block_distance,block_forward_dist);
+        auto.grabBlockFastColor(move_from_wall,block_distance,block_forward_dist);
         //auto.turnOrient(-1,0,500,0,0,0);
         auto.moveToFoundationFast(1, (line_dist_from_start), (extra_dist) );
         //auto.moveToFoundationY(-1,line_dist_from_start,extra_dist);
@@ -80,7 +80,7 @@ public class Blue2BockFast extends LinearOpMode {
             while (pantTime.milliseconds() < 600) { //need to check if some are done
 
                 //Robot.pantagraphDown(pantTime);
-                Robot.outtake(.9); //maybe .7 will be more relaible
+                Robot.outtake(1); //maybe .7 will be more relaible
             }
             Robot.reset_pow();
             Robot.resetTime();

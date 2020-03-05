@@ -31,6 +31,10 @@ package us.ftcteam11574.teamcode2019;
 
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.hardware.Gamepad;
+import com.qualcomm.robotcore.hardware.HardwareMap;
+
+import org.firstinspires.ftc.robotcore.external.Telemetry;
 
 /**
  * This file contains an example of an iterative (Non-Linear) "OpMode".
@@ -63,6 +67,13 @@ public class opNoDist extends OpMode
 
     }
 
+    public void init(Telemetry telemetry, HardwareMap hardwareMap, Gamepad gamepad1, Gamepad gamepad2) {
+
+        Robot.init_teleOp(telemetry, hardwareMap,gamepad1,gamepad2);
+
+
+    }
+
     /*
      * Code to run REPEATEDLY after the driver hits INIT, but before they hit PLAY
      */
@@ -82,13 +93,13 @@ public class opNoDist extends OpMode
     /*
      * Code to run REPEATEDLY after the driver hits PLAY but before they hit STOP
      */
-    private boolean max_mode = true;
-    private boolean a_cur = false;
-    private boolean orientation_mode = false;
-    private boolean b_cur = false;
-    private boolean x_cur = false;
-    private boolean slow_intake = false;
-    private boolean previous_block_state = false;
+    public boolean max_mode = true;
+    public boolean a_cur = false;
+    public  boolean orientation_mode = false;
+    public boolean b_cur = false;
+    public boolean x_cur = false;
+    public boolean slow_intake = false;
+    public boolean previous_block_state = false;
     boolean dpad_right = false;
     boolean dpad_left = false;
     int pistonPos = 1;
@@ -118,7 +129,7 @@ public class opNoDist extends OpMode
         //left is intake
 
         //telemetry.addData("Block found?:",isBlock());
-        if( ( (gamepad1.left_trigger - gamepad1.right_trigger) > .15)) {
+        if( ( (Robot.gamepad1.left_trigger - Robot.gamepad1.right_trigger) > .15)) {
             if (frame % 1 == 0) { //check every frame
                 //previous_block_state = Robot.isBlock(); //only check isBlock every once in a while
                 previous_block_state = false;
@@ -146,11 +157,11 @@ public class opNoDist extends OpMode
 
 
         Robot.telemetry.addData("Orietnation_mode on?:", orientation_mode);
-        Robot.telemetry.addData("test_mode on?:", slow_intake);
+        Robot.telemetry.addData("Slow intake mode on?:", slow_intake);
         Robot.telemetry.addData("Max_mode on?:", max_mode);
-        Robot.telemetry.addData("block info",Robot.isBlock());
+        //Robot.telemetry.addData("block info",Robot.isBlock());
         if(!orientation_mode) {
-
+            //I don't think rot2 should be this high, check back on this
             Robot.setMotors(-vx,vy,rot2*1.5,max_mode); //maybe I can edit how strong the turn factor is with another variable
             //maybe could control with another controller, and it shoudl print out the current value
             // Show the elapsed game time and wheel power.
